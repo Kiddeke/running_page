@@ -17,12 +17,16 @@ const getBasePath = () => {
 const data: ISiteMetadataResult = {
   siteTitle: 'Grant Running',
   siteUrl: 'https://kiddeke.github.io/running_page',
-  logo: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQTtc69JxHNcmN1ETpMUX4dozAgAN6iPjWalQ&usqp=CAU',
+  logo: 'https://github.com/Kiddeke.png',
   description: 'Grant\'s running activities',
   navLinks: [
     {
       name: 'Summary',
       url: `${getBasePath()}/summary`,
+    },
+    {
+      name: 'Strava',
+      url: 'https://strava.app.link/gCkRdBePd4b',
     },
   ],
 };
