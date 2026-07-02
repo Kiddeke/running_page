@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { ReactElement } from 'react';
 import getSiteMetadata from '@/hooks/useSiteMetadata';
 import { useTheme, Theme } from '@/hooks/useTheme';
+import Weather from '@/components/Weather';
 import styles from './style.module.css';
 
 const Header = () => {
@@ -61,7 +62,8 @@ const Header = () => {
             </picture>
           </Link>
         </div>
-        <div className="flex w-3/4 items-center justify-end text-right">
+        <div className="flex w-3/4 items-center justify-end gap-4 text-right">
+          <Weather />
           {navLinks.map((n) => (
             <a
               key={n.url}
