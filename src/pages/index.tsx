@@ -5,6 +5,8 @@ import {
   useCallback,
   useRef,
   useSyncExternalStore,
+  lazy,
+  Suspense,
 } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { Helmet } from 'react-helmet-async';
@@ -14,6 +16,8 @@ import RunMap from '@/components/RunMap';
 import RunTable from '@/components/RunTable';
 import SVGStat from '@/components/SVGStat';
 import YearsStat from '@/components/YearsStat';
+
+const ActivityList = lazy(() => import('@/components/ActivityList'));
 import useActivities from '@/hooks/useActivities';
 import getSiteMetadata from '@/hooks/useSiteMetadata';
 import { useInterval } from '@/hooks/useInterval';
@@ -404,47 +408,76 @@ const Index = () => {
   }, [year, locateActivity, runs, thisYear]);
 
   const { theme } = useTheme();
+  const [activeTab, setActiveTab] = useState<'map' | 'dashboard'>('map');
 
   return (
     <Layout>
       <Helmet>
         <html lang="en" data-theme={theme} />
       </Helmet>
-      <div className="w-full lg:w-1/3">
-        <h1 className="my-12 mt-6 text-5xl font-extrabold italic">
-          <a href={siteUrl}>{siteTitle}</a>
-        </h1>
-        {(viewState.zoom ?? 0) <= 3 && IS_CHINESE ? (
-          <LocationStat
-            changeYear={changeYear}
-            changeCity={changeCity}
-            changeTitle={changeTitle}
-          />
-        ) : (
-          <YearsStat year={year} onClick={changeYear} />
-        )}
+
+      {/* Tab bar */}
+      <div className="w-full mb-4 flex gap-1 border-b border-neutral-700 lg:px-0">
+        {(['map', 'dashboard'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-5 py-2 text-sm font-semibold capitalize tracking-wide transition-colors ${
+              activeTab === tab
+                ? 'border-b-2 border-[var(--color-brand)] text-[var(--color-brand)]'
+                : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            {tab === 'map' ? 'Map' : 'Dashboard'}
+          </button>
+        ))}
       </div>
-      <div className="w-full lg:w-2/3" id="map-container">
-        <RunMap
-          title={title}
-          viewState={viewState}
-          geoData={animatedGeoData}
-          setViewState={setViewState}
-          changeYear={changeYear}
-          thisYear={year}
-          animationTrigger={animationTrigger}
-        />
-        {year === 'Total' ? (
-          <SVGStat />
-        ) : (
-          <RunTable
-            runs={runs}
-            locateActivity={locateActivity}
-            runIndex={runIndex}
-            setRunIndex={setRunIndex}
-          />
-        )}
-      </div>
+
+      {activeTab === 'dashboard' ? (
+        <div className="w-full">
+          <Suspense fallback={<div className="p-8 text-center opacity-50">Loading...</div>}>
+            <ActivityList />
+          </Suspense>
+        </div>
+      ) : (
+        <>
+          <div className="w-full lg:w-1/3">
+            <h1 className="my-12 mt-6 text-5xl font-extrabold italic">
+              <a href={siteUrl}>{siteTitle}</a>
+            </h1>
+            {(viewState.zoom ?? 0) <= 3 && IS_CHINESE ? (
+              <LocationStat
+                changeYear={changeYear}
+                changeCity={changeCity}
+                changeTitle={changeTitle}
+              />
+            ) : (
+              <YearsStat year={year} onClick={changeYear} />
+            )}
+          </div>
+          <div className="w-full lg:w-2/3" id="map-container">
+            <RunMap
+              title={title}
+              viewState={viewState}
+              geoData={animatedGeoData}
+              setViewState={setViewState}
+              changeYear={changeYear}
+              thisYear={year}
+              animationTrigger={animationTrigger}
+            />
+            {year === 'Total' ? (
+              <SVGStat />
+            ) : (
+              <RunTable
+                runs={runs}
+                locateActivity={locateActivity}
+                runIndex={runIndex}
+                setRunIndex={setRunIndex}
+              />
+            )}
+          </div>
+        </>
+      )}
       {/* Enable Audiences in Vercel Analytics: https://vercel.com/docs/concepts/analytics/audiences/quickstart */}
       {import.meta.env.VERCEL && <Analytics />}
     </Layout>

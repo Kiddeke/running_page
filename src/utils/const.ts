@@ -28,12 +28,12 @@ const MAP_LAYER_LIST = [
 ];
 
 // styling: set to `true` if you want dash-line route
-const USE_DASH_LINE = true;
+const USE_DASH_LINE = false;
 // styling: route line opacity: [0, 1]
-const LINE_OPACITY = 0.4;
+const LINE_OPACITY = 0.75;
 // styling: map height - responsive design
 // Use smaller height on mobile devices for better user experience
-const MAP_HEIGHT = window.innerWidth <= 768 ? 250 : 600;
+const MAP_HEIGHT = window.innerWidth <= 768 ? 300 : 800;
 //set to `false` if you want to hide the road label characters
 const ROAD_LABEL_DISPLAY = true;
 // updated on 2024/11/17: privacy mode is set to true by default
@@ -41,7 +41,7 @@ const ROAD_LABEL_DISPLAY = true;
 const PRIVACY_MODE = false;
 // updated on 2024/11/17: lights are turned off by default
 //set to `false` if you want to make light off as default, only effect when `PRIVACY_MODE` = false
-const LIGHTS_ON = false;
+const LIGHTS_ON = true;
 //set to `true` if you want to show the 'Elevation Gain' column
 const SHOW_ELEVATION_GAIN = true;
 // richer title for the activity types (like garmin style)

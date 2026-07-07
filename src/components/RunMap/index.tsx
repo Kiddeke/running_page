@@ -493,11 +493,11 @@ const RunMap = ({
           type="line"
           paint={{
             'line-color': ['get', 'color'],
-            'line-width': isBigMap && lights ? 1 : 2,
+            'line-width': isBigMap && lights ? 2 : 3,
             'line-dasharray': dash,
             'line-opacity':
               isSingleRun || isBigMap || !lights ? 1 : LINE_OPACITY,
-            'line-blur': 1,
+            'line-blur': 0,
           }}
           layout={{
             'line-join': 'round',
@@ -510,11 +510,11 @@ const RunMap = ({
           type="line"
           paint={{
             'line-color': ['get', 'color'],
-            'line-width': isBigMap && lights ? 1 : 2,
+            'line-width': isBigMap && lights ? 2 : 3,
             'line-dasharray': [4, 3],
             'line-opacity':
               isSingleRun || isBigMap || !lights ? 0.6 : LINE_OPACITY * 0.6,
-            'line-blur': 1,
+            'line-blur': 0,
           }}
           layout={{
             'line-join': 'round',
