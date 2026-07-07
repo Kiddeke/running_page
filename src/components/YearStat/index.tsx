@@ -1,27 +1,11 @@
-import { lazy, Suspense } from 'react';
 import Stat from '@/components/Stat';
 import useActivities from '@/hooks/useActivities';
 import type { Activity } from '@/utils/utils';
 import { formatPace } from '@/utils/utils';
 import useHover from '@/hooks/useHover';
-import { yearStats, githubYearStats } from '@assets/index';
-import { loadSvgComponent } from '@/utils/svgUtils';
 import { SHOW_ELEVATION_GAIN } from '@/utils/const';
 import { DIST_UNIT, M_TO_DIST, M_TO_ELEV } from '@/utils/utils';
 
-const yearSvgs = Object.fromEntries(
-  Object.keys(yearStats).map((path) => [
-    path,
-    lazy(() => loadSvgComponent(yearStats, path)),
-  ])
-);
-
-const githubYearSvgs = Object.fromEntries(
-  Object.keys(githubYearStats).map((path) => [
-    path,
-    lazy(() => loadSvgComponent(githubYearStats, path)),
-  ])
-);
 
 interface YearStatAccumulator {
   averageHeartRateTotal: number;
@@ -137,11 +121,7 @@ const YearStat = ({
   onClick: (_year: string) => void;
 }) => {
   const { activities } = useActivities();
-  // for hover
-  const [hovered, eventHandlers] = useHover();
-  // lazy Component
-  const YearSVG = yearSvgs[`./year_${year}.svg`];
-  const GithubYearSVG = githubYearSvgs[`./github_${year}.svg`];
+  const [, eventHandlers] = useHover();
   const summary = getYearStatSummaries(activities).get(year);
 
   if (!summary) return null;
@@ -167,12 +147,6 @@ const YearStat = ({
           />
         )}
       </section>
-      {year !== 'Total' && YearSVG && GithubYearSVG && (
-        <Suspense fallback="loading...">
-          <YearSVG className="year-svg my-4 h-4/6 w-4/6 border-0 p-0" />
-          <GithubYearSVG className="github-year-svg my-4 h-auto w-full border-0 p-0" />
-        </Suspense>
-      )}
       <hr />
     </div>
   );

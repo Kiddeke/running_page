@@ -18,6 +18,7 @@ import SVGStat from '@/components/SVGStat';
 import YearsStat from '@/components/YearsStat';
 
 const ActivityList = lazy(() => import('@/components/ActivityList'));
+const StatsTab = lazy(() => import('@/components/StatsTab'));
 import useActivities from '@/hooks/useActivities';
 import getSiteMetadata from '@/hooks/useSiteMetadata';
 import { useInterval } from '@/hooks/useInterval';
@@ -408,7 +409,7 @@ const Index = () => {
   }, [year, locateActivity, runs, thisYear]);
 
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'map' | 'dashboard'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'dashboard' | 'stats'>('map');
 
   return (
     <Layout>
@@ -418,7 +419,7 @@ const Index = () => {
 
       {/* Tab bar */}
       <div className="w-full mb-4 flex gap-1 border-b border-neutral-700 lg:px-0">
-        {(['map', 'dashboard'] as const).map((tab) => (
+        {(['map', 'dashboard', 'stats'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -428,7 +429,7 @@ const Index = () => {
                 : 'text-neutral-400 hover:text-neutral-200'
             }`}
           >
-            {tab === 'map' ? 'Map' : 'Dashboard'}
+            {tab === 'map' ? 'Map' : tab === 'dashboard' ? 'Dashboard' : 'Stats'}
           </button>
         ))}
       </div>
@@ -437,6 +438,12 @@ const Index = () => {
         <div className="w-full">
           <Suspense fallback={<div className="p-8 text-center opacity-50">Loading...</div>}>
             <ActivityList />
+          </Suspense>
+        </div>
+      ) : activeTab === 'stats' ? (
+        <div className="w-full">
+          <Suspense fallback={<div className="p-8 text-center opacity-50">Loading...</div>}>
+            <StatsTab year={year} onYearChange={changeYear} />
           </Suspense>
         </div>
       ) : (
