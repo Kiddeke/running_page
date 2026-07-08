@@ -155,7 +155,7 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
             <defs>
               <linearGradient id="weeklyGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--color-brand)" stopOpacity={0.55} />
-                <stop offset="100%" stopColor="var(--color-brand)" stopOpacity={0.08} />
+                <stop offset="100%" stopColor="var(--color-brand)" stopOpacity={0.55} />
               </linearGradient>
             </defs>
             <XAxis
@@ -178,7 +178,7 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
               />
             )}
             <Area
-              type="monotone"
+              type="linear"
               dataKey="distance"
               stroke="var(--color-brand)"
               strokeWidth={2}
