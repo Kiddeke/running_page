@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { pathForRun } from '@/utils/geoUtils';
 import type { Activity } from '@/utils/utils';
 import { NO_ROUTE_DATA, INVALID_ROUTE_DATA, INDOOR_COLOR } from '@/utils/const';
+import { useTheme } from '@/hooks/useTheme';
 import styles from './style.module.css';
 
 interface RoutePreviewProps {
@@ -9,11 +10,92 @@ interface RoutePreviewProps {
   className?: string;
 }
 
+const SVG_WIDTH = 250;
+const SVG_HEIGHT = 150;
+const CANVAS_PADDING = 16;
+const TILE_SIZE = 256;
+const MIN_ZOOM = 10;
+const MAX_ZOOM = 17;
+const DRAW_DURATION_MS = 1400;
+
+// Web Mercator projection: lng/lat -> pixel coordinates at a given zoom level.
+// Using the same real-world projection for both the tile mosaic and the route
+// overlay keeps distances proportional in both axes, so the route never
+// looks stretched relative to the map underneath it.
+const lngLatToPixel = (lng: number, lat: number, zoom: number): [number, number] => {
+  const scale = TILE_SIZE * 2 ** zoom;
+  const x = ((lng + 180) / 360) * scale;
+  const sinLat = Math.sin((lat * Math.PI) / 180);
+  const y = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale;
+  return [x, y];
+};
+
+// Pick the highest zoom level at which the route's bounding box still fits
+// inside the available drawing area.
+const chooseZoom = (
+  minLng: number,
+  maxLng: number,
+  minLat: number,
+  maxLat: number,
+  viewWidth: number,
+  viewHeight: number
+): number => {
+  for (let z = MAX_ZOOM; z >= MIN_ZOOM; z--) {
+    const [minX, minY] = lngLatToPixel(minLng, maxLat, z);
+    const [maxX, maxY] = lngLatToPixel(maxLng, minLat, z);
+    if (maxX - minX <= viewWidth && maxY - minY <= viewHeight) {
+      return z;
+    }
+  }
+  return MIN_ZOOM;
+};
+
+const TILE_SUBDOMAINS = 'abcd';
+const tileSubdomain = (x: number, y: number) => TILE_SUBDOMAINS[(x + y) % 4];
+
+// Draws a route path once, animating the stroke from hidden to fully drawn,
+// then leaves it settled in its final, fully-drawn state.
+const AnimatedRoutePath: React.FC<{
+  d: string;
+  color: string;
+  indoor: boolean;
+}> = ({ d, color, indoor }) => {
+  const pathRef = useRef<SVGPathElement>(null);
+
+  useLayoutEffect(() => {
+    const el = pathRef.current;
+    if (!el || indoor) return;
+    const length = el.getTotalLength();
+    el.style.transition = 'none';
+    el.style.strokeDasharray = `${length}`;
+    el.style.strokeDashoffset = `${length}`;
+    const raf = requestAnimationFrame(() => {
+      el.style.transition = `stroke-dashoffset ${DRAW_DURATION_MS}ms ease-out`;
+      el.style.strokeDashoffset = '0';
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [d, indoor]);
+
+  return (
+    <path
+      ref={pathRef}
+      d={d}
+      fill="none"
+      stroke={color}
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity={indoor ? 0.6 : 0.95}
+      strokeDasharray={indoor ? '4,3' : undefined}
+    />
+  );
+};
+
 const RoutePreview: React.FC<RoutePreviewProps> = ({
   activities,
   className,
 }) => {
-  // Filter activities that have polyline data
+  const { theme } = useTheme();
   const activitiesWithRoutes = activities.filter(
     (activity) => activity.summary_polyline
   );
@@ -21,143 +103,187 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
   if (activitiesWithRoutes.length === 0) {
     return (
       <div className={`${styles.routePreview} ${className || ''}`}>
-        <div className={styles.noRoute}>{NO_ROUTE_DATA}</div>
+        <div
+          className={styles.noRoute}
+          style={{ width: SVG_WIDTH, height: SVG_HEIGHT }}
+        >
+          {NO_ROUTE_DATA}
+        </div>
       </div>
     );
   }
 
-  // Get all route coordinates
-  const allCoordinates: Array<{
-    path: [number, number][];
-    color: string;
-    indoor: boolean;
-  }> = activitiesWithRoutes.map((activity, index) => {
+  const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
+  const routes = activitiesWithRoutes.map((activity, index) => {
     const path = pathForRun(activity);
     const indoor =
       activity.subtype === 'indoor' || activity.subtype === 'treadmill';
-    // Use different colors for multiple routes
-    const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
     const color = indoor ? INDOOR_COLOR : colors[index % colors.length];
     return { path, color, indoor };
   });
 
-  // Calculate bounding box for all routes
-  const allPoints = allCoordinates.flatMap((route) => route.path);
+  const allPoints = routes.flatMap((route) => route.path);
   if (allPoints.length === 0) {
     return (
       <div className={`${styles.routePreview} ${className || ''}`}>
-        <div className={styles.noRoute}>{INVALID_ROUTE_DATA}</div>
+        <div
+          className={styles.noRoute}
+          style={{ width: SVG_WIDTH, height: SVG_HEIGHT }}
+        >
+          {INVALID_ROUTE_DATA}
+        </div>
       </div>
     );
   }
 
   const lats = allPoints.map((point) => point[1]);
   const lngs = allPoints.map((point) => point[0]);
-
   const minLat = Math.min(...lats);
   const maxLat = Math.max(...lats);
   const minLng = Math.min(...lngs);
   const maxLng = Math.max(...lngs);
 
-  // Add padding to bounds
-  const padding = 0.001;
-  const bounds = {
-    minLat: minLat - padding,
-    maxLat: maxLat + padding,
-    minLng: minLng - padding,
-    maxLng: maxLng + padding,
+  const drawWidth = SVG_WIDTH - CANVAS_PADDING * 2;
+  const drawHeight = SVG_HEIGHT - CANVAS_PADDING * 2;
+  const zoom = chooseZoom(
+    minLng,
+    maxLng,
+    minLat,
+    maxLat,
+    drawWidth,
+    drawHeight
+  );
+
+  // Bounding box of the route(s) in real map pixels at the chosen zoom.
+  const [bboxMinX, bboxMinY] = lngLatToPixel(minLng, maxLat, zoom);
+  const [bboxMaxX, bboxMaxY] = lngLatToPixel(maxLng, minLat, zoom);
+
+  // Offset that centers the bounding box inside the canvas. Both the tile
+  // mosaic and the route overlay use this same offset, so they line up.
+  const offsetX = (SVG_WIDTH - (bboxMaxX - bboxMinX)) / 2 - bboxMinX;
+  const offsetY = (SVG_HEIGHT - (bboxMaxY - bboxMinY)) / 2 - bboxMinY;
+
+  const project = (lng: number, lat: number): [number, number] => {
+    const [x, y] = lngLatToPixel(lng, lat, zoom);
+    return [x + offsetX, y + offsetY];
   };
 
-  const boundsWidth = bounds.maxLng - bounds.minLng;
-  const boundsHeight = bounds.maxLat - bounds.minLat;
+  const maxTileIndex = 2 ** zoom - 1;
+  const containerMinX = -offsetX;
+  const containerMinY = -offsetY;
+  const tileXStart = Math.max(0, Math.floor(containerMinX / TILE_SIZE));
+  const tileXEnd = Math.min(
+    maxTileIndex,
+    Math.floor((containerMinX + SVG_WIDTH - 1) / TILE_SIZE)
+  );
+  const tileYStart = Math.max(0, Math.floor(containerMinY / TILE_SIZE));
+  const tileYEnd = Math.min(
+    maxTileIndex,
+    Math.floor((containerMinY + SVG_HEIGHT - 1) / TILE_SIZE)
+  );
 
-  // SVG dimensions
-  const svgWidth = 250;
-  const svgHeight = 150;
-  const svgPadding = 10;
-  const drawWidth = svgWidth - 2 * svgPadding;
-  const drawHeight = svgHeight - 2 * svgPadding;
+  const tiles: { key: string; x: number; y: number; left: number; top: number }[] =
+    [];
+  for (let tx = tileXStart; tx <= tileXEnd; tx++) {
+    for (let ty = tileYStart; ty <= tileYEnd; ty++) {
+      tiles.push({
+        key: `${tx}-${ty}`,
+        x: tx,
+        y: ty,
+        left: tx * TILE_SIZE + offsetX,
+        top: ty * TILE_SIZE + offsetY,
+      });
+    }
+  }
 
-  // Convert coordinate to SVG coordinate
-  const coordToSvg = (lng: number, lat: number): [number, number] => {
-    const x = svgPadding + ((lng - bounds.minLng) / boundsWidth) * drawWidth;
-    const y = svgPadding + ((bounds.maxLat - lat) / boundsHeight) * drawHeight;
-    return [x, y];
-  };
+  const tileStyle = theme === 'light' ? 'light_all' : 'dark_all';
 
   return (
     <div className={`${styles.routePreview} ${className || ''}`}>
-      <svg width={svgWidth} height={svgHeight} className={styles.routeSvg}>
-        {/* Background */}
-        <rect
-          width={svgWidth}
-          height={svgHeight}
-          fill="var(--color-activity-card)"
-        />
+      <div
+        className={styles.mapContainer}
+        style={{ width: SVG_WIDTH, height: SVG_HEIGHT }}
+      >
+        {tiles.map((tile) => (
+          <img
+            key={tile.key}
+            src={`https://${tileSubdomain(tile.x, tile.y)}.basemaps.cartocdn.com/${tileStyle}/${zoom}/${tile.x}/${tile.y}.png`}
+            width={TILE_SIZE}
+            height={TILE_SIZE}
+            className={styles.mapTile}
+            style={{ left: tile.left, top: tile.top }}
+            alt=""
+            loading="lazy"
+          />
+        ))}
+        <svg
+          width={SVG_WIDTH}
+          height={SVG_HEIGHT}
+          className={styles.routeSvg}
+        >
+          {routes.map((route, idx) => {
+            if (route.path.length < 2) return null;
+            const routeKey = `${idx}-${route.path.length}`;
+            const pathString = route.path
+              .map((coord, i) => {
+                const [x, y] = project(coord[0], coord[1]);
+                return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+              })
+              .join(' ');
+            const [startX, startY] = project(
+              route.path[0][0],
+              route.path[0][1]
+            );
+            const [endX, endY] = project(
+              route.path[route.path.length - 1][0],
+              route.path[route.path.length - 1][1]
+            );
 
-        {/* Routes */}
-        {allCoordinates.map((route) => {
-          if (route.path.length < 2) return null;
-          const routeKey = `${route.color}-${route.indoor}-${route.path.length}-${route.path[0].join(',')}-${route.path[route.path.length - 1].join(',')}`;
-
-          const pathString = route.path
-            .map((coord, index) => {
-              const [x, y] = coordToSvg(coord[0], coord[1]);
-              return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-            })
-            .join(' ');
-
-          return (
-            <g key={routeKey}>
-              {/* Route line */}
-              <path
-                d={pathString}
-                fill="none"
-                stroke={route.color}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity={route.indoor ? 0.6 : 0.8}
-                strokeDasharray={route.indoor ? '4,3' : undefined}
-              />
-
-              {/* Start point */}
-              {route.path.length > 0 && (
+            return (
+              <g key={routeKey}>
+                <AnimatedRoutePath
+                  d={pathString}
+                  color={route.color}
+                  indoor={route.indoor}
+                />
                 <circle
-                  cx={coordToSvg(route.path[0][0], route.path[0][1])[0]}
-                  cy={coordToSvg(route.path[0][0], route.path[0][1])[1]}
+                  cx={startX}
+                  cy={startY}
                   r="3"
                   fill="#2ecc71"
                   stroke="white"
                   strokeWidth="1"
                 />
-              )}
-
-              {/* End point */}
-              {route.path.length > 1 && (
+                {!route.indoor && (
+                  <circle
+                    r="3.5"
+                    fill={route.color}
+                    stroke="white"
+                    strokeWidth="1.2"
+                  >
+                    <animateMotion
+                      dur={`${DRAW_DURATION_MS}ms`}
+                      begin="0s"
+                      fill="freeze"
+                      repeatCount="1"
+                      path={pathString}
+                    />
+                  </circle>
+                )}
                 <circle
-                  cx={
-                    coordToSvg(
-                      route.path[route.path.length - 1][0],
-                      route.path[route.path.length - 1][1]
-                    )[0]
-                  }
-                  cy={
-                    coordToSvg(
-                      route.path[route.path.length - 1][0],
-                      route.path[route.path.length - 1][1]
-                    )[1]
-                  }
+                  cx={endX}
+                  cy={endY}
                   r="3"
                   fill="#e74c3c"
                   stroke="white"
                   strokeWidth="1"
                 />
-              )}
-            </g>
-          );
-        })}
-      </svg>
+              </g>
+            );
+          })}
+        </svg>
+        <div className={styles.attribution}>© CARTO © OSM</div>
+      </div>
     </div>
   );
 };
