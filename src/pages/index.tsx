@@ -19,6 +19,7 @@ import YearsStat from '@/components/YearsStat';
 
 const ActivityList = lazy(() => import('@/components/ActivityList'));
 const StatsTab = lazy(() => import('@/components/StatsTab'));
+const WeeklyChart = lazy(() => import('@/components/WeeklyChart'));
 import useActivities from '@/hooks/useActivities';
 import getSiteMetadata from '@/hooks/useSiteMetadata';
 import { useInterval } from '@/hooks/useInterval';
@@ -452,15 +453,20 @@ const Index = () => {
             <h1 className="my-12 mt-6 text-5xl font-extrabold italic">
               <a href={siteUrl}>{siteTitle}</a>
             </h1>
-            {(viewState.zoom ?? 0) <= 3 && IS_CHINESE ? (
-              <LocationStat
-                changeYear={changeYear}
-                changeCity={changeCity}
-                changeTitle={changeTitle}
-              />
-            ) : (
-              <YearsStat year={year} onClick={changeYear} />
-            )}
+            <Suspense fallback={null}>
+              <WeeklyChart />
+            </Suspense>
+            <div className="mt-6">
+              {(viewState.zoom ?? 0) <= 3 && IS_CHINESE ? (
+                <LocationStat
+                  changeYear={changeYear}
+                  changeCity={changeCity}
+                  changeTitle={changeTitle}
+                />
+              ) : (
+                <YearsStat year={year} onClick={changeYear} />
+              )}
+            </div>
           </div>
           <div className="w-full lg:w-2/3" id="map-container">
             <RunMap
