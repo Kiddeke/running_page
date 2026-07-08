@@ -409,7 +409,7 @@ const Index = () => {
   }, [year, locateActivity, runs, thisYear]);
 
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'map' | 'faith' | 'stats'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'jesus' | 'stats'>('map');
 
   return (
     <Layout>
@@ -422,7 +422,7 @@ const Index = () => {
         className="mb-4 flex w-full gap-1 lg:px-0"
         style={{ borderBottom: '1px solid var(--color-border)' }}
       >
-        {(['map', 'faith', 'stats'] as const).map((tab) => (
+        {(['map', 'jesus', 'stats'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -437,12 +437,12 @@ const Index = () => {
                 : { color: 'var(--color-text-muted)' }
             }
           >
-            {tab === 'map' ? 'Pommel' : tab === 'faith' ? 'Faith' : 'Stats'}
+            {tab === 'map' ? 'Activity' : tab === 'jesus' ? 'Jesus' : 'Stats'}
           </button>
         ))}
       </div>
 
-      {activeTab === 'faith' ? (
+      {activeTab === 'jesus' ? (
         <div className="w-full px-4">
           <Suspense
             fallback={
