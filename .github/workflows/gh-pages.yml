@@ -97,7 +97,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       - name: Fetch Catholic readings
-        run: node scripts/fetch-readings.js
+        run: |
+          pip install catholic-mass-readings
+          python scripts/fetch-readings.py
       - name: Build
         env:
           REPO_NAME: ${{ github.event.repository.name }}
