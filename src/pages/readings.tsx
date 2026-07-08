@@ -57,12 +57,19 @@ const tryFetch = async (url: string): Promise<any | null> => {
   }
 };
 
+// Base path for same-origin static files (respects /running_page/ prefix on GH Pages)
+const BASE = import.meta.env.BASE_URL?.replace(/\/$/, '') ?? '';
+
 const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
   const compact = dateStr.replace(/-/g, '');
   const target = `https://universalis.com/US/${compact}/Mass.json`;
 
   const attempts = [
+    // 1. Same-origin static file generated at build time — no CORS, most reliable
+    `${BASE}/readings/${compact}.json`,
+    // 2. Direct API (works if Universalis has CORS headers)
     target,
+    // 3–5. Public CORS proxies as last resorts
     `https://corsproxy.io/?${encodeURIComponent(target)}`,
     `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
