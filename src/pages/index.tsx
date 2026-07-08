@@ -16,12 +16,12 @@ import RunMap from '@/components/RunMap';
 import RunTable from '@/components/RunTable';
 import SVGStat from '@/components/SVGStat';
 import YearsStat from '@/components/YearsStat';
+import MassCalendar from '@/components/MassCalendar';
 
 const ActivityList = lazy(() => import('@/components/ActivityList'));
 const StatsTab = lazy(() => import('@/components/StatsTab'));
 const WeeklyChart = lazy(() => import('@/components/WeeklyChart'));
 import useActivities from '@/hooks/useActivities';
-import getSiteMetadata from '@/hooks/useSiteMetadata';
 import { useInterval } from '@/hooks/useInterval';
 import { IS_CHINESE } from '@/utils/const';
 import {
@@ -88,7 +88,6 @@ const useRunHashId = () =>
   useSyncExternalStore(subscribeToRunHash, getRunIdFromHash, () => null);
 
 const Index = () => {
-  const { siteTitle, siteUrl } = getSiteMetadata();
   const { activities, thisYear } = useActivities();
   const themeChangeCounter = useThemeChangeCounter();
   const [year, setYear] = useState(thisYear);
@@ -427,32 +426,32 @@ const Index = () => {
             className={`px-5 py-2 text-sm font-semibold capitalize tracking-wide transition-colors ${
               activeTab === tab
                 ? 'border-b-2 border-[var(--color-brand)] text-[var(--color-brand)]'
-                : 'text-neutral-400 hover:text-neutral-200'
+                : 'text-white hover:text-white/70'
             }`}
           >
-            {tab === 'map' ? 'Map' : tab === 'dashboard' ? 'Dashboard' : 'Stats'}
+            {tab === 'map' ? 'Journey' : tab === 'dashboard' ? 'Dashboard' : 'Stats'}
           </button>
         ))}
       </div>
 
       {activeTab === 'dashboard' ? (
         <div className="w-full">
-          <Suspense fallback={<div className="p-8 text-center opacity-50">Loading...</div>}>
+          <Suspense fallback={<div className="p-8 text-center text-white/40">Loading...</div>}>
             <ActivityList />
           </Suspense>
         </div>
       ) : activeTab === 'stats' ? (
         <div className="w-full">
-          <Suspense fallback={<div className="p-8 text-center opacity-50">Loading...</div>}>
+          <Suspense fallback={<div className="p-8 text-center text-white/40">Loading...</div>}>
             <StatsTab year={year} onYearChange={changeYear} />
           </Suspense>
         </div>
       ) : (
         <>
           <div className="w-full lg:w-1/3">
-            <h1 className="my-12 mt-6 text-5xl font-extrabold italic">
-              <a href={siteUrl}>{siteTitle}</a>
-            </h1>
+            <div className="mt-6 mb-5">
+              <MassCalendar />
+            </div>
             <Suspense fallback={null}>
               <WeeklyChart />
             </Suspense>

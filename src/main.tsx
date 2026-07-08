@@ -11,6 +11,7 @@ import { withOptionalGAPageTracking } from './utils/trackRoute';
 
 const Index = lazy(() => import('./pages'));
 const HomePage = lazy(() => import('@/pages/total'));
+const ReadingsPage = lazy(() => import('@/pages/readings'));
 const NotFound = lazy(() => import('./pages/404'));
 
 const createRouteElement = (element: React.ReactElement) =>
@@ -29,6 +30,10 @@ const routes = createBrowserRouter(
     {
       path: 'summary',
       element: createRouteElement(<HomePage />),
+    },
+    {
+      path: 'readings/:date',
+      element: createRouteElement(<ReadingsPage />),
     },
     {
       path: '*',
