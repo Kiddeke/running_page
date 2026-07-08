@@ -55,7 +55,13 @@
 }
 
 .noRoute {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   padding: 20px;
+  border-radius: 8px;
+  background: var(--color-activity-card);
   text-align: center;
   color: var(--color-run-table-thead);
   font-size: 14px;
