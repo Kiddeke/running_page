@@ -98,7 +98,7 @@ jobs:
         run: pnpm install
       - name: Fetch Catholic readings
         run: |
-          pip install catholic-mass-readings
+          pip install httpx beautifulsoup4
           python scripts/fetch-readings.py
       - name: Build
         env:
