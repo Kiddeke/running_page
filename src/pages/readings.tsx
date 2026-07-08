@@ -44,31 +44,39 @@ const parseUniversalisJson = (json: any, dateStr: string): MassData => {
   return { longname, date: dateStr, sections };
 };
 
+const tryFetch = async (url: string): Promise<any | null> => {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json = await res.json();
+    // allorigins wraps response in { contents: string }
+    if (typeof json?.contents === 'string') return JSON.parse(json.contents);
+    return json;
+  } catch {
+    return null;
+  }
+};
+
 const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
   const compact = dateStr.replace(/-/g, '');
-  const directUrl = `https://universalis.com/US/${compact}/Mass.json`;
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(directUrl)}`;
+  const target = `https://universalis.com/US/${compact}/Mass.json`;
 
-  // Try direct fetch first; if CORS blocks it, fall back to proxy
-  let json: any = null;
-  try {
-    const res = await fetch(directUrl);
-    if (res.ok) json = await res.json();
-  } catch {
-    // CORS or network error — try proxy
-  }
+  const attempts = [
+    target,
+    `https://corsproxy.io/?${encodeURIComponent(target)}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
+  ];
 
-  if (!json) {
-    const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error('Network error');
-    json = await res.json();
-    // corsproxy.io wraps the response in { contents: "..." } when it can't parse JSON
-    if (typeof json === 'object' && typeof json.contents === 'string') {
-      json = JSON.parse(json.contents);
+  for (const url of attempts) {
+    const json = await tryFetch(url);
+    if (json) {
+      const data = parseUniversalisJson(json, dateStr);
+      if (data.sections.length > 0) return data;
     }
   }
 
-  return parseUniversalisJson(json, dateStr);
+  throw new Error('All attempts failed');
 };
 
 // Strip HTML tags for plain-text rendering, or keep for innerHTML
