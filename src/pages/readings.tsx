@@ -44,9 +44,11 @@ const parseUniversalisJson = (json: any, dateStr: string): MassData => {
   return { longname, date: dateStr, sections };
 };
 
-const tryFetch = async (url: string): Promise<any | null> => {
+const tryFetch = async (url: string, timeoutMs = 6000): Promise<any | null> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) return null;
     const json = await res.json();
     // allorigins wraps response in { contents: string }
@@ -54,6 +56,8 @@ const tryFetch = async (url: string): Promise<any | null> => {
     return json;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 };
 
