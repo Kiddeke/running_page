@@ -479,7 +479,7 @@ const Index = () => {
           </Suspense>
         </div>
       ) : (
-        <>
+        <div className="lg:flex lg:gap-8">
           <div className="w-full lg:w-1/3">
             <div className="mt-6 mb-5">
               <MassCalendar />
@@ -520,7 +520,7 @@ const Index = () => {
               />
             )}
           </div>
-        </>
+        </div>
       )}
       {/* Enable Audiences in Vercel Analytics: https://vercel.com/docs/concepts/analytics/audiences/quickstart */}
       {import.meta.env.VERCEL && <Analytics />}
