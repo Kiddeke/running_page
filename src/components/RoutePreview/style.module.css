@@ -11,11 +11,39 @@
   overflow: hidden;
 }
 
-.routeSvg {
-  display: block;
+.mapContainer {
+  position: relative;
+  overflow: hidden;
   border-radius: 8px;
   background: var(--color-activity-card);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.mapTile {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.routeSvg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+}
+
+.attribution {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 8px;
+  line-height: 1.4;
+  pointer-events: none;
 }
 
 .routeInfo {
