@@ -12,16 +12,23 @@ import {
 import useActivities from '@/hooks/useActivities';
 import { M_TO_DIST, DIST_UNIT, Activity } from '@/utils/utils';
 
+const pad = (n: number) => String(n).padStart(2, '0');
+
+// Parse date without timezone conversion by using local Date constructor
+const parseLocalDate = (dateStr: string): Date => {
+  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
 const getWeekKey = (dateStr: string): string => {
-  const d = new Date(dateStr);
-  const day = d.getDay();
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - ((day + 6) % 7));
-  return monday.toISOString().slice(0, 10);
+  const d = parseLocalDate(dateStr);
+  const daysToMonday = (d.getDay() + 6) % 7;
+  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - daysToMonday);
+  return `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`;
 };
 
 const getWeekLabel = (weekKey: string): string => {
-  const d = new Date(weekKey);
+  const d = parseLocalDate(weekKey);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
@@ -33,7 +40,8 @@ interface ThisWeekStats {
 }
 
 const computeThisWeek = (activities: Activity[]): ThisWeekStats => {
-  const thisWeek = getWeekKey(new Date().toISOString());
+  const now = new Date();
+  const thisWeek = getWeekKey(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
   return activities
     .filter((a) => getWeekKey(a.start_date_local) === thisWeek)
     .reduce(
@@ -84,13 +92,13 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
 
   const { weeklyData, thisWeek: tw } = useMemo(() => {
     const now = new Date();
-    const thisWeekKey = getWeekKey(now.toISOString());
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const thisWeekKey = getWeekKey(todayStr);
 
     const weekMap = new Map<string, number>();
     for (let i = weeksBack - 1; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i * 7);
-      const key = getWeekKey(d.toISOString());
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i * 7);
+      const key = getWeekKey(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
       weekMap.set(key, 0);
     }
 
@@ -146,8 +154,8 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
           <AreaChart data={weeklyData} margin={{ top: 10, right: 4, left: 4, bottom: 0 }}>
             <defs>
               <linearGradient id="weeklyGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-brand)" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="var(--color-brand)" stopOpacity={0} />
+                <stop offset="0%" stopColor="var(--color-brand)" stopOpacity={0.55} />
+                <stop offset="100%" stopColor="var(--color-brand)" stopOpacity={0.08} />
               </linearGradient>
             </defs>
             <XAxis
