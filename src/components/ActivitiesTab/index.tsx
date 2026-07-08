@@ -139,7 +139,11 @@ const ActivityRow = ({ activity, expanded, onToggle }: ActivityRowProps) => {
             />
           </div>
           <Suspense fallback={null}>
-            <RoutePreview activities={[activity]} className="mx-auto" />
+            <RoutePreview
+              activities={[activity]}
+              height={340}
+              className="mx-auto"
+            />
           </Suspense>
         </div>
       )}
@@ -168,6 +172,14 @@ const ActivitiesTab = () => {
     });
   };
 
+  const expandAll = () => {
+    setExpandedIds(new Set(sortedActivities.map((activity) => activity.run_id)));
+  };
+
+  const collapseAll = () => {
+    setExpandedIds(new Set());
+  };
+
   if (sortedActivities.length === 0) {
     return (
       <div
@@ -181,6 +193,30 @@ const ActivitiesTab = () => {
 
   return (
     <div className="flex flex-col gap-2 pb-12">
+      <div className="mb-1 flex justify-end gap-2">
+        <button
+          onClick={expandAll}
+          className="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
+          style={{
+            backgroundColor: 'var(--color-card-2)',
+            color: 'var(--color-text-muted)',
+            border: '1px solid var(--color-border)',
+          }}
+        >
+          Expand All
+        </button>
+        <button
+          onClick={collapseAll}
+          className="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
+          style={{
+            backgroundColor: 'var(--color-card-2)',
+            color: 'var(--color-text-muted)',
+            border: '1px solid var(--color-border)',
+          }}
+        >
+          Collapse All
+        </button>
+      </div>
       {sortedActivities.map((activity) => (
         <ActivityRow
           key={activity.run_id}

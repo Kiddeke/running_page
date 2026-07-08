@@ -8,15 +8,17 @@ import styles from './style.module.css';
 interface RoutePreviewProps {
   activities: Activity[];
   className?: string;
+  // Height of the preview in pixels; width always fills the parent container.
+  height?: number;
 }
 
-const SVG_WIDTH = 250;
-const SVG_HEIGHT = 150;
+const FALLBACK_WIDTH = 250;
+const DEFAULT_HEIGHT = 150;
 const CANVAS_PADDING = 16;
 const TILE_SIZE = 256;
 const MIN_ZOOM = 10;
 const MAX_ZOOM = 17;
-const DRAW_DURATION_MS = 1400;
+const DRAW_DURATION_MS = 2800;
 
 // Web Mercator projection: lng/lat -> pixel coordinates at a given zoom level.
 // Using the same real-world projection for both the tile mosaic and the route
@@ -91,11 +93,33 @@ const AnimatedRoutePath: React.FC<{
   );
 };
 
+const useContainerWidth = (fallback: number) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(fallback);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      if (w > 0) setWidth(w);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, width] as const;
+};
+
 const RoutePreview: React.FC<RoutePreviewProps> = ({
   activities,
   className,
+  height = DEFAULT_HEIGHT,
 }) => {
   const { theme } = useTheme();
+  const [containerRef, width] = useContainerWidth(FALLBACK_WIDTH);
   const activitiesWithRoutes = activities.filter(
     (activity) => activity.summary_polyline
   );
@@ -104,8 +128,9 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
     return (
       <div className={`${styles.routePreview} ${className || ''}`}>
         <div
+          ref={containerRef}
           className={styles.noRoute}
-          style={{ width: SVG_WIDTH, height: SVG_HEIGHT }}
+          style={{ width: '100%', height }}
         >
           {NO_ROUTE_DATA}
         </div>
@@ -127,8 +152,9 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
     return (
       <div className={`${styles.routePreview} ${className || ''}`}>
         <div
+          ref={containerRef}
           className={styles.noRoute}
-          style={{ width: SVG_WIDTH, height: SVG_HEIGHT }}
+          style={{ width: '100%', height }}
         >
           {INVALID_ROUTE_DATA}
         </div>
@@ -143,8 +169,8 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
   const minLng = Math.min(...lngs);
   const maxLng = Math.max(...lngs);
 
-  const drawWidth = SVG_WIDTH - CANVAS_PADDING * 2;
-  const drawHeight = SVG_HEIGHT - CANVAS_PADDING * 2;
+  const drawWidth = width - CANVAS_PADDING * 2;
+  const drawHeight = height - CANVAS_PADDING * 2;
   const zoom = chooseZoom(
     minLng,
     maxLng,
@@ -160,8 +186,8 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
 
   // Offset that centers the bounding box inside the canvas. Both the tile
   // mosaic and the route overlay use this same offset, so they line up.
-  const offsetX = (SVG_WIDTH - (bboxMaxX - bboxMinX)) / 2 - bboxMinX;
-  const offsetY = (SVG_HEIGHT - (bboxMaxY - bboxMinY)) / 2 - bboxMinY;
+  const offsetX = (width - (bboxMaxX - bboxMinX)) / 2 - bboxMinX;
+  const offsetY = (height - (bboxMaxY - bboxMinY)) / 2 - bboxMinY;
 
   const project = (lng: number, lat: number): [number, number] => {
     const [x, y] = lngLatToPixel(lng, lat, zoom);
@@ -174,12 +200,12 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
   const tileXStart = Math.max(0, Math.floor(containerMinX / TILE_SIZE));
   const tileXEnd = Math.min(
     maxTileIndex,
-    Math.floor((containerMinX + SVG_WIDTH - 1) / TILE_SIZE)
+    Math.floor((containerMinX + width - 1) / TILE_SIZE)
   );
   const tileYStart = Math.max(0, Math.floor(containerMinY / TILE_SIZE));
   const tileYEnd = Math.min(
     maxTileIndex,
-    Math.floor((containerMinY + SVG_HEIGHT - 1) / TILE_SIZE)
+    Math.floor((containerMinY + height - 1) / TILE_SIZE)
   );
 
   const tiles: { key: string; x: number; y: number; left: number; top: number }[] =
@@ -201,8 +227,9 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
   return (
     <div className={`${styles.routePreview} ${className || ''}`}>
       <div
+        ref={containerRef}
         className={styles.mapContainer}
-        style={{ width: SVG_WIDTH, height: SVG_HEIGHT }}
+        style={{ width: '100%', height }}
       >
         {tiles.map((tile) => (
           <img
@@ -216,11 +243,7 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
             loading="lazy"
           />
         ))}
-        <svg
-          width={SVG_WIDTH}
-          height={SVG_HEIGHT}
-          className={styles.routeSvg}
-        >
+        <svg width={width} height={height} className={styles.routeSvg}>
           {routes.map((route, idx) => {
             if (route.path.length < 2) return null;
             const routeKey = `${idx}-${route.path.length}`;
