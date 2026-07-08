@@ -39,26 +39,29 @@ function httpsGet(url) {
 async function fetchOne(dateStr) {
   const compact = dateStr.replace(/-/g, '');
   const outFile = path.join(OUT_DIR, `${compact}.json`);
-  // Universalis JSONP: returns  universalisCallback({...json...});
-  const url = `https://universalis.com/US/${compact}/Mass.json?callback=universalisCallback`;
+  const url = `https://universalis.com/US/${compact}/Mass0.js`;
 
   try {
     const body = await httpsGet(url);
     // Strip JSONP wrapper: "universalisCallback({...});" → "{...}"
-    const jsonStr = body.replace(/^\s*\w+\s*\(/, '').replace(/\);\s*$/, '');
+    const jsonStr = body.replace(/^\s*universalisCallback\s*\(/, '').replace(/\);\s*$/, '');
     const json = JSON.parse(jsonStr);
 
-    const longname = json.longname ?? json.day ?? '';
-    const rawSections = json.Mass?.sections ?? json.sections ?? [];
-    const sections = rawSections
-      .filter(s => s.body)
-      .map(s => ({ heading: s.heading ?? '', ref: s.ref ?? '', body: s.body ?? '' }));
+    const longname = json['Universalis_day'] ?? '';
+    const keys = ['R1', 'Ps', 'R2', 'GA', 'G'];
+    const sections = [];
+    for (const k of keys) {
+      const entry = json[`Universalis_Mass_${k}`] ?? {};
+      const text = entry.text ?? '';
+      if (!text) continue;
+      sections.push({ heading: entry.heading ?? '', ref: entry.source ?? '', body: text });
+    }
 
     if (sections.length > 0) {
       fs.writeFileSync(outFile, JSON.stringify({ longname, date: dateStr, sections }));
       console.log(`  ✓ ${dateStr} — ${sections.length} sections — "${longname.slice(0, 50)}"`);
     } else {
-      console.log(`  ~ ${dateStr}: 0 sections (longname="${longname}")`);
+      console.log(`  ~ ${dateStr}: 0 sections (longname="${longname}") — body: ${body.slice(0, 120)}`);
     }
   } catch (e) {
     console.log(`  ✗ ${dateStr}: ${e.message}`);

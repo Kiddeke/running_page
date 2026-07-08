@@ -58,28 +58,56 @@ const tryFetchJson = async (url: string, timeoutMs = 6000): Promise<any | null> 
   }
 };
 
-// Load Universalis via JSONP script tag — bypasses CORS entirely
-const loadJsonp = (url: string, timeoutMs = 8000): Promise<any | null> => {
-  return new Promise((resolve) => {
-    const cbName = `_ub_${Date.now()}`;
-    const timer = setTimeout(() => {
-      delete (window as any)[cbName];
-      script.remove();
-      resolve(null);
-    }, timeoutMs);
+// Load Universalis via JSONP — fixed callback name "universalisCallback"
+const loadUniversalisJsonp = (dateStr: string, timeoutMs = 10000): Promise<any | null> => {
+  const compact = dateStr.replace(/-/g, '');
+  const urls = [
+    `https://universalis.com/US/${compact}/Mass0.js`,
+    `https://universalis.com/US/${compact}/jsonpmass.js`,
+  ];
 
-    (window as any)[cbName] = (data: any) => {
-      clearTimeout(timer);
-      delete (window as any)[cbName];
-      script.remove();
-      resolve(data);
-    };
+  const tryUrl = (url: string): Promise<any | null> =>
+    new Promise((resolve) => {
+      let settled = false;
+      const settle = (val: any) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        (window as any).universalisCallback = undefined;
+        script.remove();
+        resolve(val);
+      };
 
-    const script = document.createElement('script');
-    script.src = `${url}?callback=${cbName}`;
-    script.onerror = () => { clearTimeout(timer); resolve(null); };
-    document.head.appendChild(script);
-  });
+      const timer = setTimeout(() => settle(null), timeoutMs);
+      (window as any).universalisCallback = (data: any) => settle(data);
+
+      const script = document.createElement('script');
+      script.src = url;
+      script.onerror = () => settle(null);
+      document.head.appendChild(script);
+    });
+
+  return urls.reduce(
+    (chain, url) => chain.then((result) => (result !== null ? result : tryUrl(url))),
+    Promise.resolve(null as any)
+  );
+};
+
+// Parse the flat Universalis JSONP data structure into MassData
+const parseUniversalisFlat = (data: any, dateStr: string): MassData => {
+  const longname: string = data['Universalis_day'] ?? '';
+  const keys = ['R1', 'Ps', 'R2', 'GA', 'G'];
+  const sections: Section[] = [];
+  for (const k of keys) {
+    const text = data[`Universalis_Mass_${k}`]?.text ?? data[`Universalis_Mass_${k}.text`] ?? '';
+    if (!text) continue;
+    sections.push({
+      heading: data[`Universalis_Mass_${k}`]?.heading ?? data[`Universalis_Mass_${k}.heading`] ?? '',
+      ref: data[`Universalis_Mass_${k}`]?.source ?? data[`Universalis_Mass_${k}.source`] ?? '',
+      body: text,
+    });
+  }
+  return { longname, date: dateStr, sections };
 };
 
 // Base path for same-origin static files (respects /running_page/ prefix on GH Pages)
@@ -91,15 +119,20 @@ const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
   // 1. Same-origin static file generated at build time — fastest, no CORS
   const localJson = await tryFetchJson(`${BASE}/readings/${compact}.json`);
   if (localJson) {
-    const data = parseUniversalisJson(localJson, dateStr);
-    if (data.sections.length > 0) return data;
+    // Try flat structure first, fall back to sections array
+    const flat = parseUniversalisFlat(localJson, dateStr);
+    if (flat.sections.length > 0) return flat;
+    const nested = parseUniversalisJson(localJson, dateStr);
+    if (nested.sections.length > 0) return nested;
   }
 
-  // 2. Universalis JSONP — bypasses CORS by loading as a <script> tag
-  const jsonpData = await loadJsonp(`https://universalis.com/US/${compact}/Mass.json`);
+  // 2. Universalis JSONP — bypasses CORS via <script> tag, fixed callback
+  const jsonpData = await loadUniversalisJsonp(dateStr);
   if (jsonpData) {
-    const data = parseUniversalisJson(jsonpData, dateStr);
-    if (data.sections.length > 0) return data;
+    const flat = parseUniversalisFlat(jsonpData, dateStr);
+    if (flat.sections.length > 0) return flat;
+    const nested = parseUniversalisJson(jsonpData, dateStr);
+    if (nested.sections.length > 0) return nested;
   }
 
   throw new Error('All attempts failed');
