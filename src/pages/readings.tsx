@@ -44,16 +44,13 @@ const parseUniversalisJson = (json: any, dateStr: string): MassData => {
   return { longname, date: dateStr, sections };
 };
 
-const tryFetch = async (url: string, timeoutMs = 6000): Promise<any | null> => {
+const tryFetchJson = async (url: string, timeoutMs = 6000): Promise<any | null> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) return null;
-    const json = await res.json();
-    // allorigins wraps response in { contents: string }
-    if (typeof json?.contents === 'string') return JSON.parse(json.contents);
-    return json;
+    return await res.json();
   } catch {
     return null;
   } finally {
@@ -61,30 +58,48 @@ const tryFetch = async (url: string, timeoutMs = 6000): Promise<any | null> => {
   }
 };
 
+// Load Universalis via JSONP script tag — bypasses CORS entirely
+const loadJsonp = (url: string, timeoutMs = 8000): Promise<any | null> => {
+  return new Promise((resolve) => {
+    const cbName = `_ub_${Date.now()}`;
+    const timer = setTimeout(() => {
+      delete (window as any)[cbName];
+      script.remove();
+      resolve(null);
+    }, timeoutMs);
+
+    (window as any)[cbName] = (data: any) => {
+      clearTimeout(timer);
+      delete (window as any)[cbName];
+      script.remove();
+      resolve(data);
+    };
+
+    const script = document.createElement('script');
+    script.src = `${url}?callback=${cbName}`;
+    script.onerror = () => { clearTimeout(timer); resolve(null); };
+    document.head.appendChild(script);
+  });
+};
+
 // Base path for same-origin static files (respects /running_page/ prefix on GH Pages)
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, '') ?? '';
 
 const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
   const compact = dateStr.replace(/-/g, '');
-  const target = `https://universalis.com/US/${compact}/Mass.json`;
 
-  const attempts = [
-    // 1. Same-origin static file generated at build time — no CORS, most reliable
-    `${BASE}/readings/${compact}.json`,
-    // 2. Direct API (works if Universalis has CORS headers)
-    target,
-    // 3–5. Public CORS proxies as last resorts
-    `https://corsproxy.io/?${encodeURIComponent(target)}`,
-    `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
-  ];
+  // 1. Same-origin static file generated at build time — fastest, no CORS
+  const localJson = await tryFetchJson(`${BASE}/readings/${compact}.json`);
+  if (localJson) {
+    const data = parseUniversalisJson(localJson, dateStr);
+    if (data.sections.length > 0) return data;
+  }
 
-  for (const url of attempts) {
-    const json = await tryFetch(url);
-    if (json) {
-      const data = parseUniversalisJson(json, dateStr);
-      if (data.sections.length > 0) return data;
-    }
+  // 2. Universalis JSONP — bypasses CORS by loading as a <script> tag
+  const jsonpData = await loadJsonp(`https://universalis.com/US/${compact}/Mass.json`);
+  if (jsonpData) {
+    const data = parseUniversalisJson(jsonpData, dateStr);
+    if (data.sections.length > 0) return data;
   }
 
   throw new Error('All attempts failed');
