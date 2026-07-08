@@ -30,19 +30,10 @@ interface MassData {
   sections: Section[];
 }
 
-const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
-  const compact = dateStr.replace(/-/g, '');
-  const res = await fetch(`https://universalis.com/US/${compact}/Mass.json`);
-  if (!res.ok) throw new Error('Network error');
-  const json = await res.json();
-
-  // Universalis structure: { longname, day, Mass: { sections: [{ heading, ref, body }] } }
-  const longname: string =
-    json.longname ?? json.day ?? '';
-
+const parseUniversalisJson = (json: any, dateStr: string): MassData => {
+  const longname: string = json.longname ?? json.day ?? '';
   const rawSections: { heading?: string; ref?: string; title?: string; source?: string; body?: string; }[] =
     json.Mass?.sections ?? json.sections ?? [];
-
   const sections: Section[] = rawSections
     .filter((s) => s.body)
     .map((s) => ({
@@ -50,8 +41,34 @@ const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
       ref: s.ref ?? s.source ?? '',
       body: s.body ?? '',
     }));
-
   return { longname, date: dateStr, sections };
+};
+
+const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
+  const compact = dateStr.replace(/-/g, '');
+  const directUrl = `https://universalis.com/US/${compact}/Mass.json`;
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(directUrl)}`;
+
+  // Try direct fetch first; if CORS blocks it, fall back to proxy
+  let json: any = null;
+  try {
+    const res = await fetch(directUrl);
+    if (res.ok) json = await res.json();
+  } catch {
+    // CORS or network error — try proxy
+  }
+
+  if (!json) {
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error('Network error');
+    json = await res.json();
+    // corsproxy.io wraps the response in { contents: "..." } when it can't parse JSON
+    if (typeof json === 'object' && typeof json.contents === 'string') {
+      json = JSON.parse(json.contents);
+    }
+  }
+
+  return parseUniversalisJson(json, dateStr);
 };
 
 // Strip HTML tags for plain-text rendering, or keep for innerHTML
