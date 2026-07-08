@@ -36,7 +36,7 @@ const MassCalendar = () => {
   return (
     <div
       ref={scrollRef}
-      className="flex gap-1 overflow-x-auto pb-1 scrollbar-none"
+      className="flex scrollbar-none gap-1 overflow-x-auto pb-1"
       style={{ scrollbarWidth: 'none' }}
     >
       {days.map((d) => {
@@ -51,16 +51,29 @@ const MassCalendar = () => {
             className="flex shrink-0 flex-col items-center rounded-xl px-3 py-2 transition-colors"
             style={
               isToday
-                ? { backgroundColor: 'var(--color-brand)', color: 'var(--color-background)' }
+                ? {
+                    backgroundColor: 'var(--color-brand)',
+                    color: 'var(--color-background)',
+                  }
                 : isSunday
-                  ? { backgroundColor: 'var(--color-card)', color: 'var(--color-brand)', border: '1px solid var(--color-border)' }
-                  : { backgroundColor: 'var(--color-card)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }
+                  ? {
+                      backgroundColor: 'var(--color-card)',
+                      color: 'var(--color-brand)',
+                      border: '1px solid var(--color-border)',
+                    }
+                  : {
+                      backgroundColor: 'var(--color-card)',
+                      color: 'var(--color-text)',
+                      border: '1px solid var(--color-border)',
+                    }
             }
           >
             <span className="text-[10px] font-semibold tracking-widest">
               {DAY_ABBR[d.getDay()]}
             </span>
-            <span className="text-lg font-bold leading-none">{d.getDate()}</span>
+            <span className="text-lg leading-none font-bold">
+              {d.getDate()}
+            </span>
           </button>
         );
       })}

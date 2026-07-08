@@ -11,11 +11,13 @@ const parseLocalDate = (dateStr: string): Date => {
 
 const formatDisplayDate = (dateStr: string): string => {
   const d = parseLocalDate(dateStr);
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: '2-digit',
-    year: 'numeric',
-  }).toUpperCase();
+  return d
+    .toLocaleDateString('en-US', {
+      month: 'short',
+      day: '2-digit',
+      year: 'numeric',
+    })
+    .toUpperCase();
 };
 
 interface Section {
@@ -32,8 +34,13 @@ interface MassData {
 
 const parseUniversalisJson = (json: any, dateStr: string): MassData => {
   const longname: string = json.longname ?? json.day ?? '';
-  const rawSections: { heading?: string; ref?: string; title?: string; source?: string; body?: string; }[] =
-    json.Mass?.sections ?? json.sections ?? [];
+  const rawSections: {
+    heading?: string;
+    ref?: string;
+    title?: string;
+    source?: string;
+    body?: string;
+  }[] = json.Mass?.sections ?? json.sections ?? [];
   const sections: Section[] = rawSections
     .filter((s) => s.body)
     .map((s) => ({
@@ -44,7 +51,10 @@ const parseUniversalisJson = (json: any, dateStr: string): MassData => {
   return { longname, date: dateStr, sections };
 };
 
-const tryFetchJson = async (url: string, timeoutMs = 6000): Promise<any | null> => {
+const tryFetchJson = async (
+  url: string,
+  timeoutMs = 6000
+): Promise<any | null> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -59,7 +69,10 @@ const tryFetchJson = async (url: string, timeoutMs = 6000): Promise<any | null> 
 };
 
 // Load Universalis via JSONP — fixed callback name "universalisCallback"
-const loadUniversalisJsonp = (dateStr: string, timeoutMs = 10000): Promise<any | null> => {
+const loadUniversalisJsonp = (
+  dateStr: string,
+  timeoutMs = 10000
+): Promise<any | null> => {
   const compact = dateStr.replace(/-/g, '');
   const urls = [
     `https://universalis.com/US/${compact}/Mass0.js`,
@@ -88,7 +101,8 @@ const loadUniversalisJsonp = (dateStr: string, timeoutMs = 10000): Promise<any |
     });
 
   return urls.reduce(
-    (chain, url) => chain.then((result) => (result !== null ? result : tryUrl(url))),
+    (chain, url) =>
+      chain.then((result) => (result !== null ? result : tryUrl(url))),
     Promise.resolve(null as any)
   );
 };
@@ -99,11 +113,20 @@ const parseUniversalisFlat = (data: any, dateStr: string): MassData => {
   const keys = ['R1', 'Ps', 'R2', 'GA', 'G'];
   const sections: Section[] = [];
   for (const k of keys) {
-    const text = data[`Universalis_Mass_${k}`]?.text ?? data[`Universalis_Mass_${k}.text`] ?? '';
+    const text =
+      data[`Universalis_Mass_${k}`]?.text ??
+      data[`Universalis_Mass_${k}.text`] ??
+      '';
     if (!text) continue;
     sections.push({
-      heading: data[`Universalis_Mass_${k}`]?.heading ?? data[`Universalis_Mass_${k}.heading`] ?? '',
-      ref: data[`Universalis_Mass_${k}`]?.source ?? data[`Universalis_Mass_${k}.source`] ?? '',
+      heading:
+        data[`Universalis_Mass_${k}`]?.heading ??
+        data[`Universalis_Mass_${k}.heading`] ??
+        '',
+      ref:
+        data[`Universalis_Mass_${k}`]?.source ??
+        data[`Universalis_Mass_${k}.source`] ??
+        '',
       body: text,
     });
   }
@@ -140,15 +163,40 @@ const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
 
 // Strip HTML tags for plain-text rendering, or keep for innerHTML
 const stripHtml = (html: string): string =>
-  html.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#8203;/g, '').trim();
+  html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#8203;/g, '')
+    .trim();
 
 const SkeletonCard = () => (
-  <div className="animate-pulse rounded-2xl p-6 mb-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-    <div className="h-3 w-1/3 rounded mb-3" style={{ backgroundColor: 'var(--color-card-2)' }} />
-    <div className="h-5 w-1/2 rounded mb-4" style={{ backgroundColor: 'var(--color-card-2)' }} />
+  <div
+    className="mb-4 animate-pulse rounded-2xl p-6"
+    style={{
+      backgroundColor: 'var(--color-card)',
+      border: '1px solid var(--color-border)',
+    }}
+  >
+    <div
+      className="mb-3 h-3 w-1/3 rounded"
+      style={{ backgroundColor: 'var(--color-card-2)' }}
+    />
+    <div
+      className="mb-4 h-5 w-1/2 rounded"
+      style={{ backgroundColor: 'var(--color-card-2)' }}
+    />
     <div className="space-y-2">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className={`h-3 rounded`} style={{ backgroundColor: 'var(--color-border)', width: i === 4 ? '60%' : '100%' }} />
+        <div
+          key={i}
+          className={`h-3 rounded`}
+          style={{
+            backgroundColor: 'var(--color-border)',
+            width: i === 4 ? '60%' : '100%',
+          }}
+        />
       ))}
     </div>
   </div>
@@ -188,7 +236,7 @@ const ReadingsPage = () => {
     <Layout>
       <div className="mx-auto w-full max-w-2xl px-4 pb-12">
         {/* Nav bar */}
-        <div className="flex items-center justify-between py-4 mb-2">
+        <div className="mb-2 flex items-center justify-between py-4">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-1 text-sm"
@@ -196,7 +244,12 @@ const ReadingsPage = () => {
           >
             ‹ Back
           </button>
-          <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Daily Readings</p>
+          <p
+            className="text-sm font-semibold"
+            style={{ color: 'var(--color-text)' }}
+          >
+            Daily Readings
+          </p>
           <a
             href={usccbUrl}
             target="_blank"
@@ -210,10 +263,19 @@ const ReadingsPage = () => {
 
         {loading && (
           <>
-            <div className="animate-pulse mb-8">
-              <div className="h-8 rounded w-3/4 mb-3" style={{ backgroundColor: 'var(--color-card-2)' }} />
-              <div className="h-8 rounded w-1/2 mb-4" style={{ backgroundColor: 'var(--color-card-2)' }} />
-              <div className="h-4 rounded w-1/3" style={{ backgroundColor: 'var(--color-border)' }} />
+            <div className="mb-8 animate-pulse">
+              <div
+                className="mb-3 h-8 w-3/4 rounded"
+                style={{ backgroundColor: 'var(--color-card-2)' }}
+              />
+              <div
+                className="mb-4 h-8 w-1/2 rounded"
+                style={{ backgroundColor: 'var(--color-card-2)' }}
+              />
+              <div
+                className="h-4 w-1/3 rounded"
+                style={{ backgroundColor: 'var(--color-border)' }}
+              />
             </div>
             <SkeletonCard />
             <SkeletonCard />
@@ -222,9 +284,17 @@ const ReadingsPage = () => {
         )}
 
         {error && (
-          <div className="text-center py-16">
-            <p className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text)' }}>Readings unavailable</p>
-            <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>
+          <div className="py-16 text-center">
+            <p
+              className="mb-2 text-lg font-semibold"
+              style={{ color: 'var(--color-text)' }}
+            >
+              Readings unavailable
+            </p>
+            <p
+              className="mb-6 text-sm"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
               Couldn't load the readings for this day.
             </p>
             <a
@@ -232,7 +302,10 @@ const ReadingsPage = () => {
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block rounded-full px-6 py-3 text-sm font-semibold"
-              style={{ backgroundColor: 'var(--color-brand)', color: 'var(--color-background)' }}
+              style={{
+                backgroundColor: 'var(--color-brand)',
+                color: 'var(--color-background)',
+              }}
             >
               View on USCCB →
             </a>
@@ -243,10 +316,16 @@ const ReadingsPage = () => {
           <>
             {/* Hero header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold leading-tight mb-3" style={{ color: 'var(--color-text)' }}>
+              <h1
+                className="mb-3 text-3xl leading-tight font-bold"
+                style={{ color: 'var(--color-text)' }}
+              >
                 {data.longname}
               </h1>
-              <p className="text-xs font-semibold tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
+              <p
+                className="text-xs font-semibold tracking-widest"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
                 {formatDisplayDate(safeDate)}
               </p>
             </div>
@@ -257,11 +336,17 @@ const ReadingsPage = () => {
                 <div
                   key={i}
                   className="rounded-2xl p-6"
-                  style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}
+                  style={{
+                    backgroundColor: 'var(--color-card)',
+                    border: '1px solid var(--color-border)',
+                  }}
                 >
                   {/* Heading (e.g. "First reading") */}
                   {s.heading && (
-                    <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>
+                    <p
+                      className="mb-3 text-xs font-bold tracking-widest uppercase"
+                      style={{ color: 'var(--color-text-muted)' }}
+                    >
                       {s.heading}
                     </p>
                   )}
@@ -269,14 +354,20 @@ const ReadingsPage = () => {
                   {/* Citation pill (e.g. "Hosea 8:4") */}
                   {s.ref && (
                     <div
-                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 mb-5"
-                      style={{ backgroundColor: 'var(--color-card-2)', border: '1px solid var(--color-border)' }}
+                      className="mb-5 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5"
+                      style={{
+                        backgroundColor: 'var(--color-card-2)',
+                        border: '1px solid var(--color-border)',
+                      }}
                     >
                       <span
-                        className="w-1 h-4 rounded-full shrink-0"
+                        className="h-4 w-1 shrink-0 rounded-full"
                         style={{ backgroundColor: 'var(--color-brand)' }}
                       />
-                      <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                      <span
+                        className="text-sm font-semibold"
+                        style={{ color: 'var(--color-text)' }}
+                      >
                         {s.ref}
                       </span>
                     </div>

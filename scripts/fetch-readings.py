@@ -88,9 +88,13 @@ async def fetch_one(client: httpx.AsyncClient, date: datetime.date) -> None:
                 sections.append({"heading": heading, "ref": ref, "body": body})
 
         if sections:
-            payload = {"longname": longname, "date": date.isoformat(), "sections": sections}
+            payload = {
+                "longname": longname,
+                "date": date.isoformat(),
+                "sections": sections,
+            }
             out_file.write_text(json.dumps(payload))
-            print(f"  ✓ {date} — {len(sections)} sections — \"{longname[:50]}\"")
+            print(f'  ✓ {date} — {len(sections)} sections — "{longname[:50]}"')
         else:
             print(f"  ~ {date}: 0 sections (check HTML structure at {url})")
     except Exception as e:

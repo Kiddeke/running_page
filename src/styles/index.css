@@ -48,7 +48,7 @@
     --color-card: #ffffff;
     --color-card-2: #f0f0f0;
     --color-text: #171717;
-    --color-text-muted: rgba(0,0,0,0.45);
+    --color-text-muted: rgba(0, 0, 0, 0.45);
     --color-border: #e5e5e5;
   }
 }
@@ -75,7 +75,7 @@
     --color-card: #171717;
     --color-card-2: #262626;
     --color-text: #ffffff;
-    --color-text-muted: rgba(255,255,255,0.45);
+    --color-text-muted: rgba(255, 255, 255, 0.45);
     --color-border: #262626;
   }
 }
@@ -101,7 +101,7 @@
   --color-card: #ffffff;
   --color-card-2: #f0f0f0;
   --color-text: #171717;
-  --color-text-muted: rgba(0,0,0,0.45);
+  --color-text-muted: rgba(0, 0, 0, 0.45);
   --color-border: #e5e5e5;
 }
 
@@ -125,7 +125,7 @@
   --color-card: #171717;
   --color-card-2: #262626;
   --color-text: #ffffff;
-  --color-text-muted: rgba(255,255,255,0.45);
+  --color-text-muted: rgba(255, 255, 255, 0.45);
   --color-border: #262626;
 }
 

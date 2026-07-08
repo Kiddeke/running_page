@@ -36,13 +36,13 @@ const StatsTab = ({ year, onYearChange }: Props) => {
     return Array.from(years).sort((a, b) => b.localeCompare(a));
   }, [activities]);
 
-  const displayYear = year === 'Total' ? availableYears[0] ?? '' : year;
+  const displayYear = year === 'Total' ? (availableYears[0] ?? '') : year;
 
   const YearSVG = yearSvgs[`./year_${displayYear}.svg`];
   const GithubYearSVG = githubYearSvgs[`./github_${displayYear}.svg`];
 
   return (
-    <div className="w-full py-6 px-2">
+    <div className="w-full px-2 py-6">
       <div className="mb-8 flex flex-wrap gap-2">
         {availableYears.map((y) => (
           <button
@@ -51,8 +51,15 @@ const StatsTab = ({ year, onYearChange }: Props) => {
             className="rounded-full px-4 py-1.5 text-sm font-semibold transition-colors"
             style={
               displayYear === y
-                ? { backgroundColor: 'var(--color-brand)', color: 'var(--color-background)' }
-                : { backgroundColor: 'var(--color-card-2)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }
+                ? {
+                    backgroundColor: 'var(--color-brand)',
+                    color: 'var(--color-background)',
+                  }
+                : {
+                    backgroundColor: 'var(--color-card-2)',
+                    color: 'var(--color-text-muted)',
+                    border: '1px solid var(--color-border)',
+                  }
             }
           >
             {y}
@@ -61,11 +68,23 @@ const StatsTab = ({ year, onYearChange }: Props) => {
       </div>
 
       {displayYear ? (
-        <Suspense fallback={<div className="p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>Loading charts...</div>}>
+        <Suspense
+          fallback={
+            <div
+              className="p-8 text-center"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              Loading charts...
+            </div>
+          }
+        >
           <div className="flex flex-col gap-10">
             {GithubYearSVG && (
               <div>
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
+                <h2
+                  className="mb-3 text-xs font-semibold tracking-widest uppercase"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
                   {displayYear} Activity Heatmap
                 </h2>
                 <div className="overflow-x-auto rounded-xl p-4" style={card}>
@@ -75,21 +94,34 @@ const StatsTab = ({ year, onYearChange }: Props) => {
             )}
             {YearSVG && (
               <div>
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
+                <h2
+                  className="mb-3 text-xs font-semibold tracking-widest uppercase"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
                   {displayYear} Running Clock
                 </h2>
-                <div className="flex justify-center rounded-xl p-6" style={card}>
+                <div
+                  className="flex justify-center rounded-xl p-6"
+                  style={card}
+                >
                   <YearSVG className="year-svg h-auto w-full max-w-lg border-0 p-0" />
                 </div>
               </div>
             )}
             {!YearSVG && !GithubYearSVG && (
-              <p className="text-center" style={{ color: 'var(--color-text-muted)' }}>No charts available for {displayYear}.</p>
+              <p
+                className="text-center"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                No charts available for {displayYear}.
+              </p>
             )}
           </div>
         </Suspense>
       ) : (
-        <p className="text-center" style={{ color: 'var(--color-text-muted)' }}>No data yet.</p>
+        <p className="text-center" style={{ color: 'var(--color-text-muted)' }}>
+          No data yet.
+        </p>
       )}
     </div>
   );

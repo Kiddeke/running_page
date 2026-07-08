@@ -36,7 +36,10 @@ const createAccumulator = (): YearStatAccumulator => ({
   totalSecondsForPace: 0,
 });
 
-const addRunToAccumulator = (accumulator: YearStatAccumulator, run: Activity) => {
+const addRunToAccumulator = (
+  accumulator: YearStatAccumulator,
+  run: Activity
+) => {
   accumulator.runCount += 1;
   accumulator.totalDistance += run.distance || 0;
   accumulator.totalElevationGain += run.elevation_gain || 0;
@@ -57,15 +60,23 @@ const addRunToAccumulator = (accumulator: YearStatAccumulator, run: Activity) =>
   }
 };
 
-const finalizeYearStat = (accumulator: YearStatAccumulator): YearStatSummary => {
+const finalizeYearStat = (
+  accumulator: YearStatAccumulator
+): YearStatSummary => {
   const heartRateCount = accumulator.runCount - accumulator.heartRateNullCount;
   return {
-    averageHeartRate: (accumulator.averageHeartRateTotal / heartRateCount).toFixed(0),
-    averagePace: formatPace(accumulator.totalMetersForPace / accumulator.totalSecondsForPace),
+    averageHeartRate: (
+      accumulator.averageHeartRateTotal / heartRateCount
+    ).toFixed(0),
+    averagePace: formatPace(
+      accumulator.totalMetersForPace / accumulator.totalSecondsForPace
+    ),
     hasHeartRate: accumulator.averageHeartRateTotal !== 0,
     runCount: accumulator.runCount,
     streak: accumulator.streak,
-    totalDistance: parseFloat((accumulator.totalDistance / M_TO_DIST).toFixed(1)),
+    totalDistance: parseFloat(
+      (accumulator.totalDistance / M_TO_DIST).toFixed(1)
+    ),
     totalElevationGain: (accumulator.totalElevationGain * M_TO_ELEV).toFixed(0),
   };
 };
@@ -87,7 +98,10 @@ const getYearStatSummaries = (activityData: Activity[]) => {
   });
 
   const summaries = new Map(
-    Array.from(accumulators, ([year, accumulator]) => [year, finalizeYearStat(accumulator)])
+    Array.from(accumulators, ([year, accumulator]) => [
+      year,
+      finalizeYearStat(accumulator),
+    ])
   );
   yearStatCache.set(activityData, summaries);
   return summaries;
@@ -101,9 +115,22 @@ interface StatCardProps {
 }
 
 const StatCard = ({ value, label }: StatCardProps) => (
-  <div className="rounded-xl px-3 py-3" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-    <p className="text-lg font-bold leading-none" style={{ color: 'var(--color-brand)' }}>{value}</p>
-    <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+  <div
+    className="rounded-xl px-3 py-3"
+    style={{
+      backgroundColor: 'var(--color-card)',
+      border: '1px solid var(--color-border)',
+    }}
+  >
+    <p
+      className="text-lg leading-none font-bold"
+      style={{ color: 'var(--color-brand)' }}
+    >
+      {value}
+    </p>
+    <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+      {label}
+    </p>
   </div>
 );
 
@@ -122,19 +149,30 @@ const YearStat = ({
   const stats = [
     { value: summary.runCount, label: 'Runs' },
     { value: `${summary.totalDistance} ${DIST_UNIT}`, label: 'Distance' },
-    ...(SHOW_ELEVATION_GAIN ? [{ value: `${summary.totalElevationGain} ft`, label: 'Elev Gain' }] : []),
+    ...(SHOW_ELEVATION_GAIN
+      ? [{ value: `${summary.totalElevationGain} ft`, label: 'Elev Gain' }]
+      : []),
     { value: summary.averagePace, label: 'Avg Pace' },
     { value: `${summary.streak}d`, label: 'Streak' },
-    ...(summary.hasHeartRate ? [{ value: summary.averageHeartRate, label: 'Avg BPM' }] : []),
+    ...(summary.hasHeartRate
+      ? [{ value: summary.averageHeartRate, label: 'Avg BPM' }]
+      : []),
   ];
 
   return (
     <div className="cursor-pointer" onClick={() => onClick(year)}>
       <div className="mb-1 flex items-baseline gap-1">
-        <span className="text-2xl font-extrabold italic" style={{ color: 'var(--color-brand)' }}>{year}</span>
-        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Season</span>
+        <span
+          className="text-2xl font-extrabold italic"
+          style={{ color: 'var(--color-brand)' }}
+        >
+          {year}
+        </span>
+        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          Season
+        </span>
       </div>
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="mb-4 grid grid-cols-3 gap-2">
         {stats.map((s) => (
           <StatCard key={s.label} value={s.value} label={s.label} />
         ))}

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 
 const WMO_CODES: Record<number, { label: string; emoji: string }> = {
-  0:  { label: 'Clear', emoji: '☀️' },
-  1:  { label: 'Mostly Clear', emoji: '🌤️' },
-  2:  { label: 'Partly Cloudy', emoji: '⛅' },
-  3:  { label: 'Overcast', emoji: '☁️' },
+  0: { label: 'Clear', emoji: '☀️' },
+  1: { label: 'Mostly Clear', emoji: '🌤️' },
+  2: { label: 'Partly Cloudy', emoji: '⛅' },
+  3: { label: 'Overcast', emoji: '☁️' },
   45: { label: 'Foggy', emoji: '🌫️' },
   48: { label: 'Foggy', emoji: '🌫️' },
   51: { label: 'Light Drizzle', emoji: '🌦️' },

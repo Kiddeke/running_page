@@ -13,7 +13,8 @@ import MassCalendar from '@/components/MassCalendar';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-export type FaithType = 'mass' | 'confession' | 'prayer' | 'almsgiving' | 'fasting';
+export type FaithType =
+  'mass' | 'confession' | 'prayer' | 'almsgiving' | 'fasting';
 
 export interface FaithActivity {
   id: string;
@@ -25,19 +26,19 @@ export interface FaithActivity {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const FAITH_TYPES: { key: FaithType; label: string; emoji: string }[] = [
-  { key: 'mass',       label: 'Mass',       emoji: '✝️' },
-  { key: 'confession', label: 'Confession',  emoji: '🙏' },
-  { key: 'prayer',     label: 'Prayer',      emoji: '📿' },
-  { key: 'almsgiving', label: 'Almsgiving',  emoji: '🤲' },
-  { key: 'fasting',    label: 'Fasting',     emoji: '🌿' },
+  { key: 'mass', label: 'Mass', emoji: '✝️' },
+  { key: 'confession', label: 'Confession', emoji: '🙏' },
+  { key: 'prayer', label: 'Prayer', emoji: '📿' },
+  { key: 'almsgiving', label: 'Almsgiving', emoji: '🤲' },
+  { key: 'fasting', label: 'Fasting', emoji: '🌿' },
 ];
 
 const TYPE_COLORS: Record<FaithType, string> = {
-  mass:       '#f5a623',
+  mass: '#f5a623',
   confession: '#7b61ff',
-  prayer:     '#00d4ff',
+  prayer: '#00d4ff',
   almsgiving: '#00c853',
-  fasting:    '#ff6b6b',
+  fasting: '#ff6b6b',
 };
 
 const STORAGE_KEY = 'faith_activities_v1';
@@ -72,7 +73,11 @@ const parseLocalDate = (s: string) => {
 const getWeekKey = (dateStr: string): string => {
   const d = parseLocalDate(dateStr);
   const daysToMonday = (d.getDay() + 6) % 7;
-  const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - daysToMonday);
+  const mon = new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate() - daysToMonday
+  );
   return `${mon.getFullYear()}-${pad(mon.getMonth() + 1)}-${pad(mon.getDate())}`;
 };
 
@@ -83,7 +88,9 @@ const formatWeekLabel = (key: string): string => {
 
 const formatDisplayDate = (dateStr: string): string =>
   parseLocalDate(dateStr).toLocaleDateString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
   });
 
 // ── Log modal ─────────────────────────────────────────────────────────────────
@@ -106,20 +113,37 @@ const LogModal = ({ onSave, onClose }: LogModalProps) => {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+      style={{
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(4px)',
+      }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
         className="w-full max-w-md rounded-2xl p-6 pb-8"
-        style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}
+        style={{
+          backgroundColor: 'var(--color-card)',
+          border: '1px solid var(--color-border)',
+        }}
       >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold" style={{ color: 'var(--color-text)' }}>Log Activity</h2>
-          <button onClick={onClose} className="text-lg leading-none" style={{ color: 'var(--color-text-muted)' }}>✕</button>
+        <div className="mb-5 flex items-center justify-between">
+          <h2
+            className="text-base font-bold"
+            style={{ color: 'var(--color-text)' }}
+          >
+            Log Activity
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-lg leading-none"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            ✕
+          </button>
         </div>
 
         {/* Type picker */}
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="mb-5 flex flex-wrap gap-2">
           {FAITH_TYPES.map(({ key, label, emoji }) => (
             <button
               key={key}
@@ -128,7 +152,11 @@ const LogModal = ({ onSave, onClose }: LogModalProps) => {
               style={
                 type === key
                   ? { backgroundColor: TYPE_COLORS[key], color: '#000' }
-                  : { backgroundColor: 'var(--color-card-2)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }
+                  : {
+                      backgroundColor: 'var(--color-card-2)',
+                      color: 'var(--color-text-muted)',
+                      border: '1px solid var(--color-border)',
+                    }
               }
             >
               {emoji} {label}
@@ -137,12 +165,17 @@ const LogModal = ({ onSave, onClose }: LogModalProps) => {
         </div>
 
         {/* Date picker */}
-        <label className="block mb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Date</label>
+        <label
+          className="mb-1 block text-xs font-semibold tracking-widest uppercase"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          Date
+        </label>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-xl px-4 py-2.5 mb-4 text-sm"
+          className="mb-4 w-full rounded-xl px-4 py-2.5 text-sm"
           style={{
             backgroundColor: 'var(--color-card-2)',
             border: '1px solid var(--color-border)',
@@ -152,13 +185,18 @@ const LogModal = ({ onSave, onClose }: LogModalProps) => {
         />
 
         {/* Notes */}
-        <label className="block mb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Notes (optional)</label>
+        <label
+          className="mb-1 block text-xs font-semibold tracking-widest uppercase"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          Notes (optional)
+        </label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
           placeholder="Add a note…"
-          className="w-full rounded-xl px-4 py-2.5 mb-5 text-sm resize-none"
+          className="mb-5 w-full resize-none rounded-xl px-4 py-2.5 text-sm"
           style={{
             backgroundColor: 'var(--color-card-2)',
             border: '1px solid var(--color-border)',
@@ -169,7 +207,10 @@ const LogModal = ({ onSave, onClose }: LogModalProps) => {
         <button
           onClick={handleSave}
           className="w-full rounded-full py-3 text-sm font-bold"
-          style={{ backgroundColor: 'var(--color-brand)', color: 'var(--color-background)' }}
+          style={{
+            backgroundColor: 'var(--color-brand)',
+            color: 'var(--color-background)',
+          }}
         >
           Save
         </button>
@@ -190,29 +231,47 @@ const FaithCard = ({ act, onDelete }: CardProps) => {
   const color = TYPE_COLORS[act.type];
   return (
     <div
-      className="rounded-2xl px-4 py-3 flex items-center gap-3"
-      style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}
+      className="flex items-center gap-3 rounded-2xl px-4 py-3"
+      style={{
+        backgroundColor: 'var(--color-card)',
+        border: '1px solid var(--color-border)',
+      }}
     >
       <div
-        className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0"
-        style={{ backgroundColor: color + '22', border: `1px solid ${color}44` }}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg"
+        style={{
+          backgroundColor: color + '22',
+          border: `1px solid ${color}44`,
+        }}
       >
         {info.emoji}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{info.label}</p>
-        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{formatDisplayDate(act.date)}</p>
+      <div className="min-w-0 flex-1">
+        <p
+          className="text-sm font-semibold"
+          style={{ color: 'var(--color-text)' }}
+        >
+          {info.label}
+        </p>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          {formatDisplayDate(act.date)}
+        </p>
         {act.notes && (
-          <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>{act.notes}</p>
+          <p
+            className="mt-0.5 truncate text-xs"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            {act.notes}
+          </p>
         )}
       </div>
       <div
-        className="w-2 h-6 rounded-full shrink-0"
+        className="h-6 w-2 shrink-0 rounded-full"
         style={{ backgroundColor: color }}
       />
       <button
         onClick={() => onDelete(act.id)}
-        className="text-xs ml-1 shrink-0"
+        className="ml-1 shrink-0 text-xs"
         style={{ color: 'var(--color-text-muted)' }}
       >
         ✕
@@ -228,12 +287,17 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   return (
     <div
       className="rounded-xl px-3 py-2 text-xs"
-      style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
+      style={{
+        backgroundColor: 'var(--color-card)',
+        border: '1px solid var(--color-border)',
+        color: 'var(--color-text)',
+      }}
     >
-      <p className="font-semibold mb-1">{label}</p>
+      <p className="mb-1 font-semibold">{label}</p>
       {payload.map((p: any) => (
         <p key={p.dataKey} style={{ color: p.fill }}>
-          {FAITH_TYPES.find((t) => t.key === p.dataKey)?.label ?? p.dataKey}: {p.value}
+          {FAITH_TYPES.find((t) => t.key === p.dataKey)?.label ?? p.dataKey}:{' '}
+          {p.value}
         </p>
       ))}
     </div>
@@ -254,8 +318,13 @@ const FaithTab = () => {
   }, [activities]);
 
   const addActivity = useCallback((act: Omit<FaithActivity, 'id'>) => {
-    const newAct: FaithActivity = { ...act, id: `${Date.now()}-${Math.random()}` };
-    setActivities((prev) => [newAct, ...prev].sort((a, b) => b.date.localeCompare(a.date)));
+    const newAct: FaithActivity = {
+      ...act,
+      id: `${Date.now()}-${Math.random()}`,
+    };
+    setActivities((prev) =>
+      [newAct, ...prev].sort((a, b) => b.date.localeCompare(a.date))
+    );
   }, []);
 
   const deleteActivity = useCallback((id: string) => {
@@ -267,12 +336,20 @@ const FaithTab = () => {
     const today = new Date();
     const weeks: string[] = [];
     for (let i = 11; i >= 0; i--) {
-      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() + 1 - i * 7);
-      weeks.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+      const d = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() - today.getDay() + 1 - i * 7
+      );
+      weeks.push(
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+      );
     }
     return weeks.map((wk) => {
       const row: Record<string, any> = { week: wk, label: formatWeekLabel(wk) };
-      FAITH_TYPES.forEach(({ key }) => { row[key] = 0; });
+      FAITH_TYPES.forEach(({ key }) => {
+        row[key] = 0;
+      });
       activities.forEach((a) => {
         if (getWeekKey(a.date) === wk) row[a.type] = (row[a.type] ?? 0) + 1;
       });
@@ -294,12 +371,16 @@ const FaithTab = () => {
     const src = selectedWeek
       ? activities.filter((a) => getWeekKey(a.date) === selectedWeek)
       : activities;
-    return Object.fromEntries(FAITH_TYPES.map(({ key }) => [key, src.filter((a) => a.type === key).length])) as Record<FaithType, number>;
+    return Object.fromEntries(
+      FAITH_TYPES.map(({ key }) => [
+        key,
+        src.filter((a) => a.type === key).length,
+      ])
+    ) as Record<FaithType, number>;
   }, [activities, selectedWeek]);
 
-  const visibleTypes = filter === 'all'
-    ? FAITH_TYPES.map((t) => t.key)
-    : [filter];
+  const visibleTypes =
+    filter === 'all' ? FAITH_TYPES.map((t) => t.key) : [filter];
 
   const handleBarClick = (data: any) => {
     if (!data?.activePayload) return;
@@ -318,21 +399,39 @@ const FaithTab = () => {
 
       {/* Summary stat strip */}
       <div
-        className="rounded-2xl p-4 mb-5"
-        style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}
+        className="mb-5 rounded-2xl p-4"
+        style={{
+          backgroundColor: 'var(--color-card)',
+          border: '1px solid var(--color-border)',
+        }}
       >
-        <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>
-          {selectedWeek ? `Week of ${formatWeekLabel(selectedWeek)}` : 'All Time'}
+        <p
+          className="mb-3 text-xs font-semibold tracking-widest uppercase"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          {selectedWeek
+            ? `Week of ${formatWeekLabel(selectedWeek)}`
+            : 'All Time'}
         </p>
         <div className="flex flex-wrap gap-3">
           {FAITH_TYPES.map(({ key, label, emoji }) => (
             <div key={key} className="flex items-center gap-1.5">
               <span
-                className="w-2 h-2 rounded-full shrink-0"
+                className="h-2 w-2 shrink-0 rounded-full"
                 style={{ backgroundColor: TYPE_COLORS[key] }}
               />
-              <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>{summary[key]}</span>
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
+              <span
+                className="text-sm font-bold"
+                style={{ color: 'var(--color-text)' }}
+              >
+                {summary[key]}
+              </span>
+              <span
+                className="text-xs"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                {label}
+              </span>
             </div>
           ))}
         </div>
@@ -340,14 +439,24 @@ const FaithTab = () => {
 
       {/* Chart */}
       <div
-        className="rounded-2xl p-4 mb-5"
-        style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}
+        className="mb-5 rounded-2xl p-4"
+        style={{
+          backgroundColor: 'var(--color-card)',
+          border: '1px solid var(--color-border)',
+        }}
       >
-        <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--color-text-muted)' }}>
+        <p
+          className="mb-4 text-xs font-semibold tracking-widest uppercase"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
           12-Week Activity
         </p>
         <ResponsiveContainer width="100%" height={140}>
-          <AreaChart data={chartData} onClick={handleBarClick} style={{ cursor: 'pointer' }}>
+          <AreaChart
+            data={chartData}
+            onClick={handleBarClick}
+            style={{ cursor: 'pointer' }}
+          >
             <XAxis
               dataKey="label"
               tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }}
@@ -364,33 +473,42 @@ const FaithTab = () => {
                 strokeWidth={2}
               />
             )}
-            {FAITH_TYPES.filter((t) => visibleTypes.includes(t.key)).map(({ key }) => (
-              <Area
-                key={key}
-                type="linear"
-                dataKey={key}
-                stroke={TYPE_COLORS[key]}
-                strokeWidth={2}
-                fill={TYPE_COLORS[key]}
-                fillOpacity={0.2}
-                stackId="a"
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
-            ))}
+            {FAITH_TYPES.filter((t) => visibleTypes.includes(t.key)).map(
+              ({ key }) => (
+                <Area
+                  key={key}
+                  type="linear"
+                  dataKey={key}
+                  stroke={TYPE_COLORS[key]}
+                  strokeWidth={2}
+                  fill={TYPE_COLORS[key]}
+                  fillOpacity={0.2}
+                  stackId="a"
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                />
+              )
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
       {/* Filter pills + Log button */}
-      <div className="flex items-center gap-2 flex-wrap mb-4">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <button
           onClick={() => setFilter('all')}
           className="rounded-full px-3 py-1.5 text-xs font-semibold"
           style={
             filter === 'all'
-              ? { backgroundColor: 'var(--color-brand)', color: 'var(--color-background)' }
-              : { backgroundColor: 'var(--color-card-2)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }
+              ? {
+                  backgroundColor: 'var(--color-brand)',
+                  color: 'var(--color-background)',
+                }
+              : {
+                  backgroundColor: 'var(--color-card-2)',
+                  color: 'var(--color-text-muted)',
+                  border: '1px solid var(--color-border)',
+                }
           }
         >
           All
@@ -403,7 +521,11 @@ const FaithTab = () => {
             style={
               filter === key
                 ? { backgroundColor: TYPE_COLORS[key], color: '#000' }
-                : { backgroundColor: 'var(--color-card-2)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }
+                : {
+                    backgroundColor: 'var(--color-card-2)',
+                    color: 'var(--color-text-muted)',
+                    border: '1px solid var(--color-border)',
+                  }
             }
           >
             {emoji} {label}
@@ -412,8 +534,11 @@ const FaithTab = () => {
         <div className="flex-1" />
         <button
           onClick={() => setShowModal(true)}
-          className="rounded-full px-4 py-1.5 text-xs font-bold shrink-0"
-          style={{ backgroundColor: 'var(--color-brand)', color: 'var(--color-background)' }}
+          className="shrink-0 rounded-full px-4 py-1.5 text-xs font-bold"
+          style={{
+            backgroundColor: 'var(--color-brand)',
+            color: 'var(--color-background)',
+          }}
         >
           + Log
         </button>
@@ -422,7 +547,7 @@ const FaithTab = () => {
       {selectedWeek && (
         <button
           onClick={() => setSelectedWeek(null)}
-          className="text-xs mb-3"
+          className="mb-3 text-xs"
           style={{ color: 'var(--color-text-muted)' }}
         >
           ← Clear week filter
@@ -432,7 +557,7 @@ const FaithTab = () => {
       {/* Activity list */}
       <div className="space-y-2">
         {filteredActivities.length === 0 ? (
-          <div className="text-center py-10">
+          <div className="py-10 text-center">
             <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
               No activities logged yet.
             </p>

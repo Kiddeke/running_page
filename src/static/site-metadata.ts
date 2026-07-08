@@ -18,7 +18,7 @@ const data: ISiteMetadataResult = {
   siteTitle: 'Grant Running',
   siteUrl: 'https://kiddeke.github.io/running_page',
   logo: 'https://github.com/Kiddeke.png',
-  description: 'Grant\'s running activities',
+  description: "Grant's running activities",
   navLinks: [
     {
       name: 'Summary',

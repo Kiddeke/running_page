@@ -22,7 +22,11 @@ const parseLocalDate = (dateStr: string): Date => {
 const getWeekKey = (dateStr: string): string => {
   const d = parseLocalDate(dateStr);
   const daysToMonday = (d.getDay() + 6) % 7;
-  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - daysToMonday);
+  const monday = new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate() - daysToMonday
+  );
   return `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`;
 };
 
@@ -33,8 +37,13 @@ const getWeekLabel = (weekKey: string): string => {
 
 const getWeekRange = (weekKey: string): string => {
   const start = parseLocalDate(weekKey);
-  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
-  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const end = new Date(
+    start.getFullYear(),
+    start.getMonth(),
+    start.getDate() + 6
+  );
+  const fmt = (d: Date) =>
+    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   return `${fmt(start)} – ${fmt(end)}`;
 };
 
@@ -50,7 +59,11 @@ const computeWeekStats = (activities: Activity[], weekKey: string): WeekStats =>
     .filter((a) => getWeekKey(a.start_date_local) === weekKey)
     .reduce(
       (acc, a) => {
-        const parts = a.moving_time.split(', ').splice(-1)[0].split(':').map(Number);
+        const parts = a.moving_time
+          .split(', ')
+          .splice(-1)[0]
+          .split(':')
+          .map(Number);
         const secs = (parts[0] * 60 + parts[1]) * 60 + parts[2];
         return {
           distance: acc.distance + a.distance,
@@ -86,8 +99,14 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
     const keyMap = new Map<string, string>();
 
     for (let i = weeksBack - 1; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i * 7);
-      const key = getWeekKey(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+      const d = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - i * 7
+      );
+      const key = getWeekKey(
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+      );
       const label = getWeekLabel(key);
       weekMap.set(key, 0);
       keyMap.set(label, key);
@@ -132,33 +151,68 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
   return (
     <div className="space-y-3">
       {/* Dynamic week summary */}
-      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
+      <div
+        className="rounded-xl p-4"
+        style={{
+          backgroundColor: 'var(--color-card)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+        <p
+          className="mb-3 text-xs font-semibold tracking-widest uppercase"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
           {headerLabel}
         </p>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <p className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>
+            <p
+              className="text-xl font-bold"
+              style={{ color: 'var(--color-text)' }}
+            >
               {(selectedStats.distance / M_TO_DIST).toFixed(1)}
             </p>
-            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{DIST_UNIT}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              {DIST_UNIT}
+            </p>
           </div>
           <div>
-            <p className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>{formatTime(selectedStats.seconds)}</p>
-            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Time</p>
+            <p
+              className="text-xl font-bold"
+              style={{ color: 'var(--color-text)' }}
+            >
+              {formatTime(selectedStats.seconds)}
+            </p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              Time
+            </p>
           </div>
           <div>
-            <p className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>
+            <p
+              className="text-xl font-bold"
+              style={{ color: 'var(--color-text)' }}
+            >
               {Math.round(selectedStats.elevationGain * 3.28084)}
             </p>
-            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>ft Elev</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              ft Elev
+            </p>
           </div>
         </div>
       </div>
 
       {/* Line chart */}
-      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-        <p className="mb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
+      <div
+        className="rounded-xl p-4"
+        style={{
+          backgroundColor: 'var(--color-card)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+        <p
+          className="mb-1 text-xs font-semibold tracking-widest uppercase"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
           Past {weeksBack} Weeks · tap a week
         </p>
         <ResponsiveContainer width="100%" height={140}>
@@ -170,8 +224,16 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
           >
             <defs>
               <linearGradient id="weeklyGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-brand)" stopOpacity={0.55} />
-                <stop offset="100%" stopColor="var(--color-brand)" stopOpacity={0.55} />
+                <stop
+                  offset="0%"
+                  stopColor="var(--color-brand)"
+                  stopOpacity={0.55}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="var(--color-brand)"
+                  stopOpacity={0.55}
+                />
               </linearGradient>
             </defs>
             <XAxis
@@ -206,8 +268,14 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
                     cx={cx}
                     cy={cy}
                     r={isSelected ? 5 : 3}
-                    fill={isSelected ? 'var(--color-text)' : 'var(--color-background)'}
-                    stroke={isSelected ? 'var(--color-text)' : 'var(--color-brand)'}
+                    fill={
+                      isSelected
+                        ? 'var(--color-text)'
+                        : 'var(--color-background)'
+                    }
+                    stroke={
+                      isSelected ? 'var(--color-text)' : 'var(--color-brand)'
+                    }
                     strokeWidth={isSelected ? 0 : 1.5}
                   />
                 );

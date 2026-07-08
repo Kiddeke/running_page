@@ -418,15 +418,22 @@ const Index = () => {
       </Helmet>
 
       {/* Tab bar */}
-      <div className="w-full mb-4 flex gap-1 lg:px-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
+      <div
+        className="mb-4 flex w-full gap-1 lg:px-0"
+        style={{ borderBottom: '1px solid var(--color-border)' }}
+      >
         {(['map', 'faith', 'stats'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className="px-5 py-2 text-sm font-semibold capitalize tracking-wide transition-colors"
+            className="px-5 py-2 text-sm font-semibold tracking-wide capitalize transition-colors"
             style={
               activeTab === tab
-                ? { borderBottom: '2px solid var(--color-brand)', color: 'var(--color-text)', marginBottom: '-1px' }
+                ? {
+                    borderBottom: '2px solid var(--color-brand)',
+                    color: 'var(--color-text)',
+                    marginBottom: '-1px',
+                  }
                 : { color: 'var(--color-text-muted)' }
             }
           >
@@ -437,13 +444,26 @@ const Index = () => {
 
       {activeTab === 'faith' ? (
         <div className="w-full px-4">
-          <Suspense fallback={<div className="p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>Loading...</div>}>
+          <Suspense
+            fallback={
+              <div
+                className="p-8 text-center"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                Loading...
+              </div>
+            }
+          >
             <FaithTab />
           </Suspense>
         </div>
       ) : activeTab === 'stats' ? (
         <div className="w-full">
-          <Suspense fallback={<div className="p-8 text-center text-white/40">Loading...</div>}>
+          <Suspense
+            fallback={
+              <div className="p-8 text-center text-white/40">Loading...</div>
+            }
+          >
             <StatsTab year={year} onYearChange={changeYear} />
           </Suspense>
         </div>

@@ -42,12 +42,24 @@ const RunTable = ({
   const getSortFunction = useCallback(
     (key: string, direction: SortDirection): SortFunc | undefined => {
       const multiplier = direction === 'ascending' ? 1 : -1;
-      if (key === DIST_UNIT) return (a, b) => (a.distance - b.distance) * multiplier;
-      if (key === 'Elev') return (a, b) => ((a.elevation_gain ?? 0) - (b.elevation_gain ?? 0)) * multiplier;
-      if (key === 'Pace') return (a, b) => (a.average_speed - b.average_speed) * multiplier;
-      if (key === 'BPM') return (a, b) => ((a.average_heartrate ?? 0) - (b.average_heartrate ?? 0)) * multiplier;
-      if (key === 'Time') return (a, b) => (convertMovingTime2Sec(a.moving_time) - convertMovingTime2Sec(b.moving_time)) * multiplier;
-      if (key === 'Date') return direction === 'ascending' ? sortDateFuncReverse : sortDateFunc;
+      if (key === DIST_UNIT)
+        return (a, b) => (a.distance - b.distance) * multiplier;
+      if (key === 'Elev')
+        return (a, b) =>
+          ((a.elevation_gain ?? 0) - (b.elevation_gain ?? 0)) * multiplier;
+      if (key === 'Pace')
+        return (a, b) => (a.average_speed - b.average_speed) * multiplier;
+      if (key === 'BPM')
+        return (a, b) =>
+          ((a.average_heartrate ?? 0) - (b.average_heartrate ?? 0)) *
+          multiplier;
+      if (key === 'Time')
+        return (a, b) =>
+          (convertMovingTime2Sec(a.moving_time) -
+            convertMovingTime2Sec(b.moving_time)) *
+          multiplier;
+      if (key === 'Date')
+        return direction === 'ascending' ? sortDateFuncReverse : sortDateFunc;
       return undefined;
     },
     []
@@ -90,13 +102,22 @@ const RunTable = ({
             className="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
             style={
               sortState?.key === k
-                ? { backgroundColor: 'var(--color-brand)', color: 'var(--color-background)' }
-                : { backgroundColor: 'var(--color-card-2)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }
+                ? {
+                    backgroundColor: 'var(--color-brand)',
+                    color: 'var(--color-background)',
+                  }
+                : {
+                    backgroundColor: 'var(--color-card-2)',
+                    color: 'var(--color-text-muted)',
+                    border: '1px solid var(--color-border)',
+                  }
             }
           >
             {k}
             {sortState?.key === k && (
-              <span className="ml-1">{sortState.direction === 'descending' ? '↓' : '↑'}</span>
+              <span className="ml-1">
+                {sortState.direction === 'descending' ? '↓' : '↑'}
+              </span>
             )}
           </button>
         ))}
