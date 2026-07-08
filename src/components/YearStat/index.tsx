@@ -1,27 +1,8 @@
-import { lazy, Suspense } from 'react';
-import Stat from '@/components/Stat';
 import useActivities from '@/hooks/useActivities';
 import type { Activity } from '@/utils/utils';
 import { formatPace } from '@/utils/utils';
-import useHover from '@/hooks/useHover';
-import { yearStats, githubYearStats } from '@assets/index';
-import { loadSvgComponent } from '@/utils/svgUtils';
 import { SHOW_ELEVATION_GAIN } from '@/utils/const';
 import { DIST_UNIT, M_TO_DIST, M_TO_ELEV } from '@/utils/utils';
-
-const yearSvgs = Object.fromEntries(
-  Object.keys(yearStats).map((path) => [
-    path,
-    lazy(() => loadSvgComponent(yearStats, path)),
-  ])
-);
-
-const githubYearSvgs = Object.fromEntries(
-  Object.keys(githubYearStats).map((path) => [
-    path,
-    lazy(() => loadSvgComponent(githubYearStats, path)),
-  ])
-);
 
 interface YearStatAccumulator {
   averageHeartRateTotal: number;
@@ -55,10 +36,7 @@ const createAccumulator = (): YearStatAccumulator => ({
   totalSecondsForPace: 0,
 });
 
-const addRunToAccumulator = (
-  accumulator: YearStatAccumulator,
-  run: Activity
-) => {
+const addRunToAccumulator = (accumulator: YearStatAccumulator, run: Activity) => {
   accumulator.runCount += 1;
   accumulator.totalDistance += run.distance || 0;
   accumulator.totalElevationGain += run.elevation_gain || 0;
@@ -79,24 +57,15 @@ const addRunToAccumulator = (
   }
 };
 
-const finalizeYearStat = (
-  accumulator: YearStatAccumulator
-): YearStatSummary => {
+const finalizeYearStat = (accumulator: YearStatAccumulator): YearStatSummary => {
   const heartRateCount = accumulator.runCount - accumulator.heartRateNullCount;
-
   return {
-    averageHeartRate: (
-      accumulator.averageHeartRateTotal / heartRateCount
-    ).toFixed(0),
-    averagePace: formatPace(
-      accumulator.totalMetersForPace / accumulator.totalSecondsForPace
-    ),
+    averageHeartRate: (accumulator.averageHeartRateTotal / heartRateCount).toFixed(0),
+    averagePace: formatPace(accumulator.totalMetersForPace / accumulator.totalSecondsForPace),
     hasHeartRate: accumulator.averageHeartRateTotal !== 0,
     runCount: accumulator.runCount,
     streak: accumulator.streak,
-    totalDistance: parseFloat(
-      (accumulator.totalDistance / M_TO_DIST).toFixed(1)
-    ),
+    totalDistance: parseFloat((accumulator.totalDistance / M_TO_DIST).toFixed(1)),
     totalElevationGain: (accumulator.totalElevationGain * M_TO_ELEV).toFixed(0),
   };
 };
@@ -112,22 +81,31 @@ const getYearStatSummaries = (activityData: Activity[]) => {
 
   activityData.forEach((run) => {
     const year = run.start_date_local.slice(0, 4);
-    if (!accumulators.has(year)) {
-      accumulators.set(year, createAccumulator());
-    }
+    if (!accumulators.has(year)) accumulators.set(year, createAccumulator());
     addRunToAccumulator(accumulators.get('Total')!, run);
     addRunToAccumulator(accumulators.get(year)!, run);
   });
 
   const summaries = new Map(
-    Array.from(accumulators, ([year, accumulator]) => [
-      year,
-      finalizeYearStat(accumulator),
-    ])
+    Array.from(accumulators, ([year, accumulator]) => [year, finalizeYearStat(accumulator)])
   );
   yearStatCache.set(activityData, summaries);
   return summaries;
 };
+
+export { getYearStatSummaries };
+
+interface StatCardProps {
+  value: string | number;
+  label: string;
+}
+
+const StatCard = ({ value, label }: StatCardProps) => (
+  <div className="rounded-xl bg-neutral-900 px-3 py-3">
+    <p className="text-lg font-bold leading-none text-[var(--color-brand)]">{value}</p>
+    <p className="mt-1 text-xs opacity-50">{label}</p>
+  </div>
+);
 
 const YearStat = ({
   year,
@@ -137,43 +115,31 @@ const YearStat = ({
   onClick: (_year: string) => void;
 }) => {
   const { activities } = useActivities();
-  // for hover
-  const [hovered, eventHandlers] = useHover();
-  // lazy Component
-  const YearSVG = yearSvgs[`./year_${year}.svg`];
-  const GithubYearSVG = githubYearSvgs[`./github_${year}.svg`];
   const summary = getYearStatSummaries(activities).get(year);
 
   if (!summary) return null;
 
+  const stats = [
+    { value: summary.runCount, label: 'Runs' },
+    { value: `${summary.totalDistance} ${DIST_UNIT}`, label: 'Distance' },
+    ...(SHOW_ELEVATION_GAIN ? [{ value: `${summary.totalElevationGain} ft`, label: 'Elev Gain' }] : []),
+    { value: summary.averagePace, label: 'Avg Pace' },
+    { value: `${summary.streak}d`, label: 'Streak' },
+    ...(summary.hasHeartRate ? [{ value: summary.averageHeartRate, label: 'Avg BPM' }] : []),
+  ];
+
   return (
     <div className="cursor-pointer" onClick={() => onClick(year)}>
-      <section {...eventHandlers}>
-        <Stat value={year} description=" Journey" />
-        <Stat value={summary.runCount} description=" Runs" />
-        <Stat value={summary.totalDistance} description={` ${DIST_UNIT}`} />
-        {SHOW_ELEVATION_GAIN && (
-          <Stat
-            value={summary.totalElevationGain}
-            description=" Elevation Gain"
-          />
-        )}
-        <Stat value={summary.averagePace} description=" Avg Pace" />
-        <Stat value={`${summary.streak} day`} description=" Streak" />
-        {summary.hasHeartRate && (
-          <Stat
-            value={summary.averageHeartRate}
-            description=" Avg Heart Rate"
-          />
-        )}
-      </section>
-      {year !== 'Total' && YearSVG && GithubYearSVG && (
-        <Suspense fallback="loading...">
-          <YearSVG className="year-svg my-4 h-4/6 w-4/6 border-0 p-0" />
-          <GithubYearSVG className="github-year-svg my-4 h-auto w-full border-0 p-0" />
-        </Suspense>
-      )}
-      <hr />
+      <div className="mb-1 flex items-baseline gap-1">
+        <span className="text-2xl font-extrabold italic text-[var(--color-brand)]">{year}</span>
+        <span className="text-xs opacity-40">Season</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        {stats.map((s) => (
+          <StatCard key={s.label} value={s.value} label={s.label} />
+        ))}
+      </div>
+      <hr className="border-neutral-800 mb-4" />
     </div>
   );
 };

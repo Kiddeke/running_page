@@ -1,16 +1,15 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   sortDateFunc,
   sortDateFuncReverse,
   convertMovingTime2Sec,
   Activity,
   RunIds,
+  DIST_UNIT,
 } from '@/utils/utils';
 import { SHOW_ELEVATION_GAIN } from '@/utils/const';
-import { DIST_UNIT } from '@/utils/utils';
 
 import RunRow from './RunRow';
-import styles from './style.module.css';
 
 interface IRunTableProperties {
   runs: Activity[];
@@ -43,32 +42,12 @@ const RunTable = ({
   const getSortFunction = useCallback(
     (key: string, direction: SortDirection): SortFunc | undefined => {
       const multiplier = direction === 'ascending' ? 1 : -1;
-
-      if (key === DIST_UNIT) {
-        return (a, b) => (a.distance - b.distance) * multiplier;
-      }
-      if (key === 'Elev') {
-        return (a, b) =>
-          ((a.elevation_gain ?? 0) - (b.elevation_gain ?? 0)) * multiplier;
-      }
-      if (key === 'Pace') {
-        return (a, b) => (a.average_speed - b.average_speed) * multiplier;
-      }
-      if (key === 'BPM') {
-        return (a, b) =>
-          ((a.average_heartrate ?? 0) - (b.average_heartrate ?? 0)) *
-          multiplier;
-      }
-      if (key === 'Time') {
-        return (a, b) =>
-          (convertMovingTime2Sec(a.moving_time) -
-            convertMovingTime2Sec(b.moving_time)) *
-          multiplier;
-      }
-      if (key === 'Date') {
-        return direction === 'ascending' ? sortDateFuncReverse : sortDateFunc;
-      }
-
+      if (key === DIST_UNIT) return (a, b) => (a.distance - b.distance) * multiplier;
+      if (key === 'Elev') return (a, b) => ((a.elevation_gain ?? 0) - (b.elevation_gain ?? 0)) * multiplier;
+      if (key === 'Pace') return (a, b) => (a.average_speed - b.average_speed) * multiplier;
+      if (key === 'BPM') return (a, b) => ((a.average_heartrate ?? 0) - (b.average_heartrate ?? 0)) * multiplier;
+      if (key === 'Time') return (a, b) => (convertMovingTime2Sec(a.moving_time) - convertMovingTime2Sec(b.moving_time)) * multiplier;
+      if (key === 'Date') return direction === 'ascending' ? sortDateFuncReverse : sortDateFunc;
       return undefined;
     },
     []
@@ -76,11 +55,8 @@ const RunTable = ({
 
   const displayedRuns = useMemo(() => {
     if (!sortState) return runs;
-
     const sortFunction = getSortFunction(sortState.key, sortState.direction);
-    if (!sortFunction) return runs;
-
-    return runs.slice().sort(sortFunction);
+    return sortFunction ? runs.slice().sort(sortFunction) : runs;
   }, [getSortFunction, runs, sortState]);
 
   const runIndexById = useMemo(
@@ -88,7 +64,7 @@ const RunTable = ({
     [runs]
   );
 
-  const handleClick = useCallback(
+  const handleSort = useCallback(
     (key: string) => {
       setRunIndex(-1);
       setSortState((currentState) => {
@@ -97,7 +73,6 @@ const RunTable = ({
           currentState?.key === key && currentState.direction === 'descending'
             ? 'ascending'
             : initialDirection;
-
         return { key, direction: nextDirection };
       });
     },
@@ -105,41 +80,43 @@ const RunTable = ({
   );
 
   return (
-    <div className={styles.tableContainer}>
-      <table className={styles.runTable} cellSpacing="0" cellPadding="0">
-        <thead>
-          <tr>
-            <th />
-            {sortKeys.map((k) => (
-              <th
-                key={k}
-                aria-sort={
-                  sortState?.key === k ? sortState.direction : undefined
-                }
-                className={styles.sortableHeader}
-                onClick={() => handleClick(k)}
-              >
-                {k}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {displayedRuns.map((run) => {
-            const sourceIndex = runIndexById.get(run.run_id) ?? -1;
-            return (
-              <RunRow
-                key={run.run_id}
-                elementIndex={sourceIndex}
-                locateActivity={locateActivity}
-                run={run}
-                runIndex={runIndex}
-                setRunIndex={setRunIndex}
-              />
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="mt-4 space-y-2">
+      {/* Sort controls */}
+      <div className="flex flex-wrap gap-1.5 pb-2">
+        {sortKeys.map((k) => (
+          <button
+            key={k}
+            onClick={() => handleSort(k)}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              sortState?.key === k
+                ? 'bg-[var(--color-brand)] text-black'
+                : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+            }`}
+          >
+            {k}
+            {sortState?.key === k && (
+              <span className="ml-1">{sortState.direction === 'descending' ? '↓' : '↑'}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Activity cards */}
+      <div className="space-y-2 pb-8">
+        {displayedRuns.map((run) => {
+          const sourceIndex = runIndexById.get(run.run_id) ?? -1;
+          return (
+            <RunRow
+              key={run.run_id}
+              elementIndex={sourceIndex}
+              locateActivity={locateActivity}
+              run={run}
+              runIndex={runIndex}
+              setRunIndex={setRunIndex}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 };
