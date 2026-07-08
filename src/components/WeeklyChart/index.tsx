@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import {
-  BarChart,
-  Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Cell,
+  ReferenceLine,
+  Dot,
 } from 'recharts';
 import useActivities from '@/hooks/useActivities';
 import { M_TO_DIST, DIST_UNIT, Activity } from '@/utils/utils';
@@ -136,13 +137,19 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
         </div>
       </div>
 
-      {/* 12-week bar chart */}
+      {/* 12-week line chart */}
       <div className="rounded-xl bg-neutral-900 p-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest opacity-50">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-widest opacity-50">
           Past {weeksBack} Weeks
         </p>
-        <ResponsiveContainer width="100%" height={120}>
-          <BarChart data={weeklyData} barCategoryGap="30%">
+        <ResponsiveContainer width="100%" height={140}>
+          <AreaChart data={weeklyData} margin={{ top: 10, right: 4, left: 4, bottom: 0 }}>
+            <defs>
+              <linearGradient id="weeklyGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-brand)" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="var(--color-brand)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
             <XAxis
               dataKey="week"
               tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.35)' }}
@@ -150,21 +157,41 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
               tickLine={false}
               interval="preserveStartEnd"
             />
-            <YAxis hide />
-            <Tooltip content={<CustomTooltip />} cursor={false} />
-            <Bar dataKey="distance" radius={[3, 3, 0, 0]}>
-              {weeklyData.map((entry, index) => (
-                <Cell
-                  key={index}
-                  fill={
-                    entry.isCurrentWeek
-                      ? 'var(--color-brand)'
-                      : 'rgba(255,255,255,0.15)'
-                  }
-                />
-              ))}
-            </Bar>
-          </BarChart>
+            <YAxis hide domain={[0, 'auto']} />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }} />
+            {/* Highlight current week */}
+            {weeklyData.find((d) => d.isCurrentWeek) && (
+              <ReferenceLine
+                x={weeklyData.find((d) => d.isCurrentWeek)!.week}
+                stroke="var(--color-brand)"
+                strokeWidth={1.5}
+                strokeDasharray="3 3"
+                strokeOpacity={0.5}
+              />
+            )}
+            <Area
+              type="monotone"
+              dataKey="distance"
+              stroke="var(--color-brand)"
+              strokeWidth={2}
+              fill="url(#weeklyGrad)"
+              dot={(props) => {
+                const { cx, cy, payload } = props;
+                return (
+                  <Dot
+                    key={payload.week}
+                    cx={cx}
+                    cy={cy}
+                    r={payload.isCurrentWeek ? 4 : 3}
+                    fill={payload.isCurrentWeek ? 'var(--color-brand)' : 'var(--color-background)'}
+                    stroke="var(--color-brand)"
+                    strokeWidth={payload.isCurrentWeek ? 0 : 1.5}
+                  />
+                );
+              }}
+              activeDot={{ r: 5, fill: 'var(--color-brand)', strokeWidth: 0 }}
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>
