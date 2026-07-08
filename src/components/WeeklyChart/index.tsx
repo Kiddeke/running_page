@@ -117,9 +117,8 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
 
   const [selectedWeekKey, setSelectedWeekKey] = useState<string>(thisWeekKey);
 
-  const { weeklyData, labelToKey } = useMemo(() => {
+  const weeklyData = useMemo(() => {
     const weekMap = new Map<string, number>();
-    const keyMap = new Map<string, string>();
 
     for (let i = weeksBack - 1; i >= 0; i--) {
       const d = new Date(
@@ -130,9 +129,7 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
       const key = getWeekKey(
         `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
       );
-      const label = getWeekLabel(key);
       weekMap.set(key, 0);
-      keyMap.set(label, key);
     }
 
     activities.forEach((a) => {
@@ -142,15 +139,13 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
       }
     });
 
-    const data = Array.from(weekMap.entries()).map(([key, dist]) => ({
+    return Array.from(weekMap.entries()).map(([key, dist]) => ({
       week: getWeekLabel(key),
       weekKey: key,
       distance: parseFloat(dist.toFixed(2)),
       isCurrentWeek: key === thisWeekKey,
       isSelected: key === selectedWeekKey,
     }));
-
-    return { weeklyData: data, labelToKey: keyMap };
   }, [activities, weeksBack, selectedWeekKey]);
 
   const { ticks: monthTicks, formatter: monthFormatter } = useMemo(
@@ -167,12 +162,9 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
   const headerLabel = isThisWeek ? 'This Week' : getWeekRange(selectedWeekKey);
 
   const handleChartClick = (data: { activeLabel?: string }) => {
-    if (data?.activeLabel) {
-      const key = labelToKey.get(data.activeLabel);
-      if (key && key !== selectedWeekKey) {
-        setSelectedWeekKey(key);
-        navigator.vibrate?.(8);
-      }
+    if (data?.activeLabel && data.activeLabel !== selectedWeekKey) {
+      setSelectedWeekKey(data.activeLabel);
+      navigator.vibrate?.(8);
     }
   };
 
@@ -276,10 +268,10 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
             <Tooltip content={() => null} cursor={false} />
             {weeklyData.find((d) => d.isSelected) && (
               <ReferenceLine
-                x={weeklyData.find((d) => d.isSelected)!.week}
-                stroke="var(--color-text)"
-                strokeWidth={2}
-                strokeOpacity={0.6}
+                x={weeklyData.find((d) => d.isSelected)!.weekKey}
+                stroke="#fff"
+                strokeWidth={1.5}
+                strokeOpacity={0.7}
               />
             )}
             <Area
@@ -306,6 +298,14 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
                       isSelected ? 'var(--color-text)' : 'var(--color-brand)'
                     }
                     strokeWidth={isSelected ? 0 : 1.5}
+                    style={
+                      isSelected
+                        ? {
+                            filter:
+                              'drop-shadow(0 0 3px var(--color-brand)) drop-shadow(0 0 6px var(--color-brand))',
+                          }
+                        : undefined
+                    }
                   />
                 );
               }}

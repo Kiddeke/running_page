@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  Dot,
 } from 'recharts';
 import MassCalendar from '@/components/MassCalendar';
 
@@ -410,12 +411,12 @@ const FaithTab = () => {
   const visibleTypes =
     filter === 'all' ? FAITH_TYPES.map((t) => t.key) : [filter];
 
-  const handleBarClick = (data: any) => {
-    if (!data?.activePayload) return;
-    const wk = data.activePayload[0]?.payload?.week;
+  const handleBarClick = (data: { activeLabel?: string | number }) => {
+    const wk = data?.activeLabel;
     if (!wk) return;
+    const key = String(wk);
     navigator.vibrate?.(8);
-    setSelectedWeek((prev) => (prev === wk ? null : wk));
+    setSelectedWeek((prev) => (prev === key ? null : key));
   };
 
   return (
@@ -497,9 +498,10 @@ const FaithTab = () => {
             <Tooltip content={<ChartTooltip />} />
             {selectedWeek && (
               <ReferenceLine
-                x={formatWeekLabel(selectedWeek)}
-                stroke="rgba(255,255,255,0.6)"
-                strokeWidth={2}
+                x={selectedWeek}
+                stroke="#fff"
+                strokeWidth={1.5}
+                strokeOpacity={0.7}
               />
             )}
             {FAITH_TYPES.filter((t) => visibleTypes.includes(t.key)).map(
@@ -513,7 +515,28 @@ const FaithTab = () => {
                   fill={TYPE_COLORS[key]}
                   fillOpacity={0.2}
                   stackId="a"
-                  dot={false}
+                  dot={(props: any) => {
+                    const { cx, cy, payload } = props;
+                    const show = payload.week === selectedWeek && payload[key];
+                    return (
+                      <Dot
+                        key={`${key}-${payload.week}`}
+                        cx={cx}
+                        cy={cy}
+                        r={show ? 4 : 0}
+                        fill={TYPE_COLORS[key]}
+                        stroke="#fff"
+                        strokeWidth={show ? 1 : 0}
+                        style={
+                          show
+                            ? {
+                                filter: `drop-shadow(0 0 3px ${TYPE_COLORS[key]}) drop-shadow(0 0 6px ${TYPE_COLORS[key]})`,
+                              }
+                            : undefined
+                        }
+                      />
+                    );
+                  }}
                   activeDot={{ r: 4 }}
                 />
               )
