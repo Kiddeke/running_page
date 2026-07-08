@@ -35,19 +35,27 @@ const getWeekLabel = (weekKey: string): string => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-const monthLabelForWeek = (weekKey: string): string => {
-  const start = parseLocalDate(weekKey);
-  for (let d = 0; d < 7; d++) {
-    const day = new Date(
-      start.getFullYear(),
-      start.getMonth(),
-      start.getDate() + d
-    );
-    if (day.getDate() === 1) {
-      return day.toLocaleDateString('en-US', { month: 'short' });
-    }
-  }
-  return '';
+// For a list of week keys, return one tick per month: the middle week of
+// that month's visible span, mapped to the month's short name.
+const monthAxisTicks = (
+  weekKeys: string[]
+): { ticks: string[]; formatter: (key: string) => string } => {
+  const monthGroups = new Map<string, string[]>();
+  weekKeys.forEach((key) => {
+    const d = parseLocalDate(key);
+    const monthKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+    if (!monthGroups.has(monthKey)) monthGroups.set(monthKey, []);
+    monthGroups.get(monthKey)!.push(key);
+  });
+  const ticks: string[] = [];
+  const labels = new Map<string, string>();
+  monthGroups.forEach((keys, monthKey) => {
+    const mid = keys[Math.floor(keys.length / 2)];
+    ticks.push(mid);
+    const d = parseLocalDate(monthKey + '-01');
+    labels.set(mid, d.toLocaleDateString('en-US', { month: 'short' }));
+  });
+  return { ticks, formatter: (key: string) => labels.get(key) ?? '' };
 };
 
 const getWeekRange = (weekKey: string): string => {
@@ -144,6 +152,11 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
 
     return { weeklyData: data, labelToKey: keyMap };
   }, [activities, weeksBack, selectedWeekKey]);
+
+  const { ticks: monthTicks, formatter: monthFormatter } = useMemo(
+    () => monthAxisTicks(weeklyData.map((d) => d.weekKey)),
+    [weeklyData]
+  );
 
   const selectedStats = useMemo(
     () => computeWeekStats(activities, selectedWeekKey),
@@ -253,24 +266,11 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
             </defs>
             <XAxis
               dataKey="weekKey"
-              tick={({ x, y, payload }: any) => {
-                const lbl = monthLabelForWeek(payload.value);
-                if (!lbl) return <g />;
-                return (
-                  <text
-                    x={x}
-                    y={y + 10}
-                    textAnchor="middle"
-                    fill="var(--color-text-muted)"
-                    fontSize={9}
-                  >
-                    {lbl}
-                  </text>
-                );
-              }}
+              ticks={monthTicks}
+              tickFormatter={monthFormatter}
+              tick={{ fill: 'var(--color-text-muted)', fontSize: 9 }}
               axisLine={false}
               tickLine={false}
-              interval={0}
             />
             <YAxis hide domain={[0, 'auto']} />
             <Tooltip content={() => null} cursor={false} />
