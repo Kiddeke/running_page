@@ -18,7 +18,7 @@ import SVGStat from '@/components/SVGStat';
 import YearsStat from '@/components/YearsStat';
 import MassCalendar from '@/components/MassCalendar';
 
-const ActivityList = lazy(() => import('@/components/ActivityList'));
+const FaithTab = lazy(() => import('@/components/FaithTab'));
 const StatsTab = lazy(() => import('@/components/StatsTab'));
 const WeeklyChart = lazy(() => import('@/components/WeeklyChart'));
 import useActivities from '@/hooks/useActivities';
@@ -409,7 +409,7 @@ const Index = () => {
   }, [year, locateActivity, runs, thisYear]);
 
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'map' | 'dashboard' | 'stats'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'faith' | 'stats'>('map');
 
   return (
     <Layout>
@@ -419,7 +419,7 @@ const Index = () => {
 
       {/* Tab bar */}
       <div className="w-full mb-4 flex gap-1 lg:px-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
-        {(['map', 'dashboard', 'stats'] as const).map((tab) => (
+        {(['map', 'faith', 'stats'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -430,15 +430,15 @@ const Index = () => {
                 : { color: 'var(--color-text-muted)' }
             }
           >
-            {tab === 'map' ? 'Journey' : tab === 'dashboard' ? 'Dashboard' : 'Stats'}
+            {tab === 'map' ? 'Journey' : tab === 'faith' ? 'Faith' : 'Stats'}
           </button>
         ))}
       </div>
 
-      {activeTab === 'dashboard' ? (
-        <div className="w-full">
-          <Suspense fallback={<div className="p-8 text-center text-white/40">Loading...</div>}>
-            <ActivityList />
+      {activeTab === 'faith' ? (
+        <div className="w-full px-4">
+          <Suspense fallback={<div className="p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>Loading...</div>}>
+            <FaithTab />
           </Suspense>
         </div>
       ) : activeTab === 'stats' ? (
