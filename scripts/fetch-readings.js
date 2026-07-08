@@ -1,17 +1,13 @@
 #!/usr/bin/env node
-// Fetches Catholic mass readings from Universalis for a rolling window and
-// saves them as static JSON files into public/readings/ so the browser
-// can load them from the same origin with no CORS issues.
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const fs = require('fs');
-const path = require('path');
-
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pad = (n) => String(n).padStart(2, '0');
-
 const OUT_DIR = path.join(__dirname, '../public/readings');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-// Fetch readings for past 7 days + next 21 days (covers the calendar strip)
 const dates = [];
 const today = new Date();
 for (let i = -7; i <= 21; i++) {
@@ -26,10 +22,7 @@ async function fetchOne(dateStr) {
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; running-page-bot/1.0)' },
     });
-    if (!res.ok) {
-      console.log(`  skip ${dateStr} (HTTP ${res.status})`);
-      return;
-    }
+    if (!res.ok) { console.log(`  skip ${dateStr} (HTTP ${res.status})`); return; }
     const json = await res.json();
     fs.writeFileSync(path.join(OUT_DIR, `${compact}.json`), JSON.stringify(json));
     console.log(`  ✓ ${dateStr}`);
@@ -38,10 +31,6 @@ async function fetchOne(dateStr) {
   }
 }
 
-(async () => {
-  console.log(`Fetching readings for ${dates.length} days…`);
-  for (const d of dates) {
-    await fetchOne(d);
-  }
-  console.log('Done.');
-})();
+console.log(`Fetching readings for ${dates.length} days…`);
+for (const d of dates) await fetchOne(d);
+console.log('Done.');
