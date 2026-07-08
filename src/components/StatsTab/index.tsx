@@ -22,6 +22,11 @@ interface Props {
   onYearChange: (_year: string) => void;
 }
 
+const card: React.CSSProperties = {
+  backgroundColor: 'var(--color-card)',
+  border: '1px solid var(--color-border)',
+};
+
 const StatsTab = ({ year, onYearChange }: Props) => {
   const { activities } = useActivities();
 
@@ -38,17 +43,17 @@ const StatsTab = ({ year, onYearChange }: Props) => {
 
   return (
     <div className="w-full py-6 px-2">
-      {/* Year picker */}
       <div className="mb-8 flex flex-wrap gap-2">
         {availableYears.map((y) => (
           <button
             key={y}
             onClick={() => onYearChange(y)}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+            className="rounded-full px-4 py-1.5 text-sm font-semibold transition-colors"
+            style={
               displayYear === y
-                ? 'bg-[var(--color-brand)] text-black'
-                : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-            }`}
+                ? { backgroundColor: 'var(--color-brand)', color: 'var(--color-background)' }
+                : { backgroundColor: 'var(--color-card-2)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }
+            }
           >
             {y}
           </button>
@@ -56,35 +61,35 @@ const StatsTab = ({ year, onYearChange }: Props) => {
       </div>
 
       {displayYear ? (
-        <Suspense fallback={<div className="p-8 text-center opacity-50">Loading charts...</div>}>
+        <Suspense fallback={<div className="p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>Loading charts...</div>}>
           <div className="flex flex-col gap-10">
             {GithubYearSVG && (
               <div>
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest opacity-50">
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
                   {displayYear} Activity Heatmap
                 </h2>
-                <div className="overflow-x-auto rounded-xl bg-neutral-900 p-4">
+                <div className="overflow-x-auto rounded-xl p-4" style={card}>
                   <GithubYearSVG className="github-year-svg h-auto w-full border-0 p-0" />
                 </div>
               </div>
             )}
             {YearSVG && (
               <div>
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest opacity-50">
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
                   {displayYear} Running Clock
                 </h2>
-                <div className="flex justify-center rounded-xl bg-neutral-900 p-6">
+                <div className="flex justify-center rounded-xl p-6" style={card}>
                   <YearSVG className="year-svg h-auto w-full max-w-lg border-0 p-0" />
                 </div>
               </div>
             )}
             {!YearSVG && !GithubYearSVG && (
-              <p className="text-center opacity-40">No charts available for {displayYear}.</p>
+              <p className="text-center" style={{ color: 'var(--color-text-muted)' }}>No charts available for {displayYear}.</p>
             )}
           </div>
         </Suspense>
       ) : (
-        <p className="text-center opacity-40">No data yet.</p>
+        <p className="text-center" style={{ color: 'var(--color-text-muted)' }}>No data yet.</p>
       )}
     </div>
   );

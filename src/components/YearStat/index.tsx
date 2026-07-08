@@ -101,9 +101,9 @@ interface StatCardProps {
 }
 
 const StatCard = ({ value, label }: StatCardProps) => (
-  <div className="rounded-xl bg-neutral-900 px-3 py-3">
-    <p className="text-lg font-bold leading-none text-[var(--color-brand)]">{value}</p>
-    <p className="mt-1 text-xs opacity-50">{label}</p>
+  <div className="rounded-xl px-3 py-3" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+    <p className="text-lg font-bold leading-none" style={{ color: 'var(--color-brand)' }}>{value}</p>
+    <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
   </div>
 );
 
@@ -131,15 +131,15 @@ const YearStat = ({
   return (
     <div className="cursor-pointer" onClick={() => onClick(year)}>
       <div className="mb-1 flex items-baseline gap-1">
-        <span className="text-2xl font-extrabold italic text-[var(--color-brand)]">{year}</span>
-        <span className="text-xs opacity-40">Season</span>
+        <span className="text-2xl font-extrabold italic" style={{ color: 'var(--color-brand)' }}>{year}</span>
+        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Season</span>
       </div>
       <div className="grid grid-cols-3 gap-2 mb-4">
         {stats.map((s) => (
           <StatCard key={s.label} value={s.value} label={s.label} />
         ))}
       </div>
-      <hr className="border-neutral-800 mb-4" />
+      <hr className="mb-4" style={{ borderColor: 'var(--color-border)' }} />
     </div>
   );
 };

@@ -54,46 +54,46 @@ const RunRow = ({
   return (
     <div
       onClick={handleClick}
-      className={`cursor-pointer rounded-xl border px-4 py-3 transition-colors ${
-        isSelected
-          ? 'border-[var(--color-brand)] bg-neutral-900'
-          : 'border-neutral-800 bg-neutral-950 hover:border-neutral-700 hover:bg-neutral-900'
-      }`}
+      className="cursor-pointer rounded-xl px-4 py-3 transition-colors"
+      style={{
+        backgroundColor: isSelected ? 'var(--color-card)' : 'var(--color-card)',
+        border: isSelected ? '1px solid var(--color-brand)' : '1px solid var(--color-border)',
+      }}
     >
       {/* Title + date */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <p className={`font-semibold text-sm leading-snug ${isSelected ? 'text-[var(--color-brand)]' : ''}`}>
+        <p className="font-semibold text-sm leading-snug" style={{ color: isSelected ? 'var(--color-brand)' : 'var(--color-text)' }}>
           {titleForRun(run)}
         </p>
-        <p className="shrink-0 text-xs opacity-40">{formatDate(run.start_date_local)}</p>
+        <p className="shrink-0 text-xs" style={{ color: 'var(--color-text-muted)' }}>{formatDate(run.start_date_local)}</p>
       </div>
 
       {/* Stats row */}
       <div className="flex gap-4 text-xs">
         <div>
-          <span className="font-bold">{distance}</span>
-          <span className="ml-0.5 opacity-40">{DIST_UNIT}</span>
+          <span className="font-bold" style={{ color: 'var(--color-text)' }}>{distance}</span>
+          <span className="ml-0.5" style={{ color: 'var(--color-text-muted)' }}>{DIST_UNIT}</span>
         </div>
         {pace && (
           <div>
-            <span className="font-bold">{pace}</span>
-            <span className="ml-0.5 opacity-40">/mi</span>
+            <span className="font-bold" style={{ color: 'var(--color-text)' }}>{pace}</span>
+            <span className="ml-0.5" style={{ color: 'var(--color-text-muted)' }}>/mi</span>
           </div>
         )}
         <div>
-          <span className="font-bold">{time}</span>
-          <span className="ml-0.5 opacity-40">time</span>
+          <span className="font-bold" style={{ color: 'var(--color-text)' }}>{time}</span>
+          <span className="ml-0.5" style={{ color: 'var(--color-text-muted)' }}>time</span>
         </div>
         {SHOW_ELEVATION_GAIN && elev && (
           <div>
-            <span className="font-bold">{elev}</span>
-            <span className="ml-0.5 opacity-40">{ELEV_UNIT}</span>
+            <span className="font-bold" style={{ color: 'var(--color-text)' }}>{elev}</span>
+            <span className="ml-0.5" style={{ color: 'var(--color-text-muted)' }}>{ELEV_UNIT}</span>
           </div>
         )}
         {run.average_heartrate && (
           <div>
-            <span className="font-bold">{run.average_heartrate.toFixed(0)}</span>
-            <span className="ml-0.5 opacity-40">bpm</span>
+            <span className="font-bold" style={{ color: 'var(--color-text)' }}>{run.average_heartrate.toFixed(0)}</span>
+            <span className="ml-0.5" style={{ color: 'var(--color-text-muted)' }}>bpm</span>
           </div>
         )}
       </div>

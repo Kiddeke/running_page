@@ -87,11 +87,12 @@ const RunTable = ({
           <button
             key={k}
             onClick={() => handleSort(k)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+            className="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
+            style={
               sortState?.key === k
-                ? 'bg-[var(--color-brand)] text-black'
-                : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-            }`}
+                ? { backgroundColor: 'var(--color-brand)', color: 'var(--color-background)' }
+                : { backgroundColor: 'var(--color-card-2)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }
+            }
           >
             {k}
             {sortState?.key === k && (

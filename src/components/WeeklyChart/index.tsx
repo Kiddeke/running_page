@@ -81,10 +81,9 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
 
   const [selectedWeekKey, setSelectedWeekKey] = useState<string>(thisWeekKey);
 
-  // Map from label → weekKey for click handling
   const { weeklyData, labelToKey } = useMemo(() => {
     const weekMap = new Map<string, number>();
-    const keyMap = new Map<string, string>(); // label → key
+    const keyMap = new Map<string, string>();
 
     for (let i = weeksBack - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i * 7);
@@ -133,33 +132,33 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
   return (
     <div className="space-y-3">
       {/* Dynamic week summary */}
-      <div className="rounded-xl bg-neutral-900 p-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/50">
+      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
           {headerLabel}
         </p>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <p className="text-xl font-bold text-white">
+            <p className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>
               {(selectedStats.distance / M_TO_DIST).toFixed(1)}
             </p>
-            <p className="text-xs text-white/50">{DIST_UNIT}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{DIST_UNIT}</p>
           </div>
           <div>
-            <p className="text-xl font-bold text-white">{formatTime(selectedStats.seconds)}</p>
-            <p className="text-xs text-white/50">Time</p>
+            <p className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>{formatTime(selectedStats.seconds)}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Time</p>
           </div>
           <div>
-            <p className="text-xl font-bold text-white">
+            <p className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>
               {Math.round(selectedStats.elevationGain * 3.28084)}
             </p>
-            <p className="text-xs text-white/50">ft Elev</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>ft Elev</p>
           </div>
         </div>
       </div>
 
       {/* Line chart */}
-      <div className="rounded-xl bg-neutral-900 p-4">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-white/50">
+      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
           Past {weeksBack} Weeks · tap a week
         </p>
         <ResponsiveContainer width="100%" height={140}>
@@ -177,23 +176,19 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
             </defs>
             <XAxis
               dataKey="week"
-              tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.4)' }}
+              tick={{ fontSize: 9, fill: 'var(--color-text-muted)' }}
               axisLine={false}
               tickLine={false}
               interval="preserveStartEnd"
             />
             <YAxis hide domain={[0, 'auto']} />
-            <Tooltip
-              content={() => null}
-              cursor={false}
-            />
-            {/* Selected week reference line */}
+            <Tooltip content={() => null} cursor={false} />
             {weeklyData.find((d) => d.isSelected) && (
               <ReferenceLine
                 x={weeklyData.find((d) => d.isSelected)!.week}
-                stroke="white"
+                stroke="var(--color-text)"
                 strokeWidth={2}
-                strokeOpacity={0.8}
+                strokeOpacity={0.6}
               />
             )}
             <Area
@@ -211,13 +206,13 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
                     cx={cx}
                     cy={cy}
                     r={isSelected ? 5 : 3}
-                    fill={isSelected ? 'white' : 'var(--color-background)'}
-                    stroke={isSelected ? 'white' : 'var(--color-brand)'}
+                    fill={isSelected ? 'var(--color-text)' : 'var(--color-background)'}
+                    stroke={isSelected ? 'var(--color-text)' : 'var(--color-brand)'}
                     strokeWidth={isSelected ? 0 : 1.5}
                   />
                 );
               }}
-              activeDot={{ r: 5, fill: 'white', strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: 'var(--color-brand)', strokeWidth: 0 }}
             />
           </AreaChart>
         </ResponsiveContainer>

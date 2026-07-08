@@ -48,13 +48,14 @@ const MassCalendar = () => {
           <button
             key={dateStr}
             onClick={() => handleDay(d)}
-            className={`flex shrink-0 flex-col items-center rounded-xl px-3 py-2 transition-colors ${
+            className="flex shrink-0 flex-col items-center rounded-xl px-3 py-2 transition-colors"
+            style={
               isToday
-                ? 'bg-[var(--color-brand)] text-black'
+                ? { backgroundColor: 'var(--color-brand)', color: 'var(--color-background)' }
                 : isSunday
-                  ? 'bg-neutral-800 text-[var(--color-brand)]'
-                  : 'bg-neutral-900 text-white hover:bg-neutral-800'
-            }`}
+                  ? { backgroundColor: 'var(--color-card)', color: 'var(--color-brand)', border: '1px solid var(--color-border)' }
+                  : { backgroundColor: 'var(--color-card)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }
+            }
           >
             <span className="text-[10px] font-semibold tracking-widest">
               {DAY_ABBR[d.getDay()]}

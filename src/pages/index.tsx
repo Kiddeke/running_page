@@ -418,16 +418,17 @@ const Index = () => {
       </Helmet>
 
       {/* Tab bar */}
-      <div className="w-full mb-4 flex gap-1 border-b border-neutral-700 lg:px-0">
+      <div className="w-full mb-4 flex gap-1 lg:px-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
         {(['map', 'dashboard', 'stats'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2 text-sm font-semibold capitalize tracking-wide transition-colors ${
+            className="px-5 py-2 text-sm font-semibold capitalize tracking-wide transition-colors"
+            style={
               activeTab === tab
-                ? 'border-b-2 border-[var(--color-brand)] text-white'
-                : 'text-white hover:text-white/70'
-            }`}
+                ? { borderBottom: '2px solid var(--color-brand)', color: 'var(--color-text)', marginBottom: '-1px' }
+                : { color: 'var(--color-text-muted)' }
+            }
           >
             {tab === 'map' ? 'Journey' : tab === 'dashboard' ? 'Dashboard' : 'Stats'}
           </button>

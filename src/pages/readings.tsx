@@ -91,16 +91,16 @@ const ReadingsPage = () => {
         <div className="mb-6 flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-white hover:bg-neutral-700"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:opacity-80" style={{ backgroundColor: 'var(--color-card-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
             aria-label="Back"
           >
             ←
           </button>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-white/50">
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
               Daily Mass Readings
             </p>
-            <p className="font-semibold text-white">{formatDisplayDate(safeDate)}</p>
+            <p className="font-semibold" style={{ color: 'var(--color-text)' }}>{formatDisplayDate(safeDate)}</p>
           </div>
         </div>
 
@@ -108,9 +108,9 @@ const ReadingsPage = () => {
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="animate-pulse rounded-xl bg-neutral-900 p-5">
-                <div className="mb-3 h-3 w-1/3 rounded bg-neutral-700" />
+                <div className="mb-3 h-3 w-1/3 rounded" style={{ backgroundColor: 'var(--color-card-2)' }} />
                 <div className="space-y-2">
-                  <div className="h-3 rounded bg-neutral-800" />
+                  <div className="h-3 rounded" style={{ backgroundColor: 'var(--color-border)' }} />
                   <div className="h-3 w-5/6 rounded bg-neutral-800" />
                   <div className="h-3 w-4/6 rounded bg-neutral-800" />
                 </div>
@@ -120,8 +120,8 @@ const ReadingsPage = () => {
         )}
 
         {error && (
-          <div className="rounded-xl bg-neutral-900 p-6 text-center">
-            <p className="mb-4 text-white/60">{error}</p>
+          <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+            <p className="mb-4" style={{ color: 'var(--color-text-muted)' }}>{error}</p>
             <a
               href={usccbUrl}
               target="_blank"
@@ -142,7 +142,7 @@ const ReadingsPage = () => {
             )}
 
             {data.readings.length === 0 ? (
-              <div className="rounded-xl bg-neutral-900 p-6 text-center">
+              <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
                 <p className="mb-1 text-white/60">Readings not available in this format.</p>
                 <a
                   href={usccbUrl}
@@ -156,7 +156,7 @@ const ReadingsPage = () => {
             ) : (
               <div className="space-y-4">
                 {data.readings.map((r, i) => (
-                  <div key={i} className="rounded-xl bg-neutral-900 p-5">
+                  <div key={i} className="rounded-xl p-5" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
                     {r.title && (
                       <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[var(--color-brand)]">
                         {r.title}
@@ -165,7 +165,7 @@ const ReadingsPage = () => {
                     {r.source && (
                       <p className="mb-3 text-sm font-semibold text-white">{r.source}</p>
                     )}
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/80">
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed" style={{ color: 'var(--color-text)' }}>
                       {r.body}
                     </p>
                   </div>
@@ -175,7 +175,7 @@ const ReadingsPage = () => {
                   href={usccbUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-center text-xs text-white/30 hover:text-white/60 pb-8"
+                  className="block text-center text-xs pb-8" style={{ color: 'var(--color-text-muted)' }}
                 >
                   Also available on USCCB →
                 </a>
