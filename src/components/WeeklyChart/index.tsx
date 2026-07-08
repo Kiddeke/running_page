@@ -153,6 +153,12 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
     [weeklyData]
   );
 
+  const maxDistance = useMemo(
+    () => Math.max(...weeklyData.map((d) => d.distance), 0),
+    [weeklyData]
+  );
+  const midDistance = maxDistance / 2;
+
   const selectedStats = useMemo(
     () => computeWeekStats(activities, selectedWeekKey),
     [activities, selectedWeekKey]
@@ -274,11 +280,39 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
                 strokeOpacity={0.7}
               />
             )}
+            {maxDistance > 0 && (
+              <ReferenceLine
+                y={maxDistance}
+                stroke="var(--color-text-muted)"
+                strokeWidth={1}
+                strokeDasharray="3 3"
+                label={{
+                  value: `${maxDistance.toFixed(1)} ${DIST_UNIT}`,
+                  position: 'insideTopLeft',
+                  fill: 'var(--color-text-muted)',
+                  fontSize: 9,
+                }}
+              />
+            )}
+            {midDistance > 0 && (
+              <ReferenceLine
+                y={midDistance}
+                stroke="var(--color-text-muted)"
+                strokeWidth={1}
+                strokeDasharray="3 3"
+                label={{
+                  value: `${midDistance.toFixed(1)} ${DIST_UNIT}`,
+                  position: 'insideBottomLeft',
+                  fill: 'var(--color-text-muted)',
+                  fontSize: 9,
+                }}
+              />
+            )}
             <Area
               type="linear"
               dataKey="distance"
               stroke="var(--color-brand)"
-              strokeWidth={2}
+              strokeWidth={3}
               fill="url(#weeklyGrad)"
               dot={(props) => {
                 const { cx, cy, payload } = props;
