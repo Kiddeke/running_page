@@ -12,51 +12,63 @@ const parseLocalDate = (dateStr: string): Date => {
 const formatDisplayDate = (dateStr: string): string => {
   const d = parseLocalDate(dateStr);
   return d.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
+    month: 'short',
+    day: '2-digit',
     year: 'numeric',
-  });
+  }).toUpperCase();
 };
 
-interface Reading {
-  title: string;
-  source: string;
+interface Section {
+  heading: string;
+  ref: string;
   body: string;
 }
 
 interface MassData {
-  day: string;
-  readings: Reading[];
+  longname: string;
+  date: string;
+  sections: Section[];
 }
 
-// Universalis API: https://universalis.com/US/YYYYMMDD/Mass.json
 const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
   const compact = dateStr.replace(/-/g, '');
-  const url = `https://universalis.com/US/${compact}/Mass.json`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Failed to fetch readings');
+  const res = await fetch(`https://universalis.com/US/${compact}/Mass.json`);
+  if (!res.ok) throw new Error('Network error');
   const json = await res.json();
 
-  const day: string = json.day ?? json.title ?? '';
-  const readings: Reading[] = [];
+  // Universalis structure: { longname, day, Mass: { sections: [{ heading, ref, body }] } }
+  const longname: string =
+    json.longname ?? json.day ?? '';
 
-  // Universalis returns { Mass: { Scripture: [...] } } or { Sections: [...] }
-  const sections: { heading?: string; title?: string; verses?: { body: string }[]; body?: string; reference?: string; source?: string }[] =
-    json.Mass?.Scripture ?? json.Sections ?? [];
+  const rawSections: { heading?: string; ref?: string; title?: string; source?: string; body?: string; }[] =
+    json.Mass?.sections ?? json.sections ?? [];
 
-  for (const s of sections) {
-    const title = s.heading ?? s.title ?? '';
-    const source = s.reference ?? s.source ?? '';
-    const body =
-      s.body ??
-      (s.verses ?? []).map((v: { body: string }) => v.body).join('\n\n') ??
-      '';
-    if (body) readings.push({ title, source, body });
-  }
+  const sections: Section[] = rawSections
+    .filter((s) => s.body)
+    .map((s) => ({
+      heading: s.heading ?? s.title ?? '',
+      ref: s.ref ?? s.source ?? '',
+      body: s.body ?? '',
+    }));
 
-  return { day, readings };
+  return { longname, date: dateStr, sections };
 };
+
+// Strip HTML tags for plain-text rendering, or keep for innerHTML
+const stripHtml = (html: string): string =>
+  html.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#8203;/g, '').trim();
+
+const SkeletonCard = () => (
+  <div className="animate-pulse rounded-2xl p-6 mb-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+    <div className="h-3 w-1/3 rounded mb-3" style={{ backgroundColor: 'var(--color-card-2)' }} />
+    <div className="h-5 w-1/2 rounded mb-4" style={{ backgroundColor: 'var(--color-card-2)' }} />
+    <div className="space-y-2">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className={`h-3 rounded`} style={{ backgroundColor: 'var(--color-border)', width: i === 4 ? '60%' : '100%' }} />
+      ))}
+    </div>
+  </div>
+);
 
 const ReadingsPage = () => {
   const { date } = useParams<{ date: string }>();
@@ -76,9 +88,13 @@ const ReadingsPage = () => {
   useEffect(() => {
     setLoading(true);
     setError(null);
+    setData(null);
     fetchMassReadings(safeDate)
-      .then(setData)
-      .catch(() => setError('Could not load readings. Please try again.'))
+      .then((d) => {
+        if (d.sections.length === 0) throw new Error('No readings returned');
+        setData(d);
+      })
+      .catch(() => setError('readings-unavailable'))
       .finally(() => setLoading(false));
   }, [safeDate]);
 
@@ -86,47 +102,53 @@ const ReadingsPage = () => {
 
   return (
     <Layout>
-      <div className="mx-auto w-full max-w-2xl px-4 py-6">
-        {/* Back + date header */}
-        <div className="mb-6 flex items-center gap-3">
+      <div className="mx-auto w-full max-w-2xl px-4 pb-12">
+        {/* Nav bar */}
+        <div className="flex items-center justify-between py-4 mb-2">
           <button
             onClick={() => navigate(-1)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:opacity-80" style={{ backgroundColor: 'var(--color-card-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
-            aria-label="Back"
+            className="flex items-center gap-1 text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
           >
-            ←
+            ‹ Back
           </button>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
-              Daily Mass Readings
-            </p>
-            <p className="font-semibold" style={{ color: 'var(--color-text)' }}>{formatDisplayDate(safeDate)}</p>
-          </div>
+          <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Daily Readings</p>
+          <a
+            href={usccbUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm"
+            style={{ color: 'var(--color-brand)' }}
+          >
+            USCCB
+          </a>
         </div>
 
         {loading && (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse rounded-xl bg-neutral-900 p-5">
-                <div className="mb-3 h-3 w-1/3 rounded" style={{ backgroundColor: 'var(--color-card-2)' }} />
-                <div className="space-y-2">
-                  <div className="h-3 rounded" style={{ backgroundColor: 'var(--color-border)' }} />
-                  <div className="h-3 w-5/6 rounded bg-neutral-800" />
-                  <div className="h-3 w-4/6 rounded bg-neutral-800" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="animate-pulse mb-8">
+              <div className="h-8 rounded w-3/4 mb-3" style={{ backgroundColor: 'var(--color-card-2)' }} />
+              <div className="h-8 rounded w-1/2 mb-4" style={{ backgroundColor: 'var(--color-card-2)' }} />
+              <div className="h-4 rounded w-1/3" style={{ backgroundColor: 'var(--color-border)' }} />
+            </div>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
         )}
 
         {error && (
-          <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-            <p className="mb-4" style={{ color: 'var(--color-text-muted)' }}>{error}</p>
+          <div className="text-center py-16">
+            <p className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text)' }}>Readings unavailable</p>
+            <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>
+              Couldn't load the readings for this day.
+            </p>
             <a
               href={usccbUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block rounded-full bg-[var(--color-brand)] px-5 py-2 text-sm font-semibold text-black"
+              className="inline-block rounded-full px-6 py-3 text-sm font-semibold"
+              style={{ backgroundColor: 'var(--color-brand)', color: 'var(--color-background)' }}
             >
               View on USCCB →
             </a>
@@ -135,52 +157,57 @@ const ReadingsPage = () => {
 
         {data && !loading && (
           <>
-            {data.day && (
-              <div className="mb-5 rounded-xl bg-[var(--color-brand)]/10 border border-[var(--color-brand)]/20 px-4 py-3">
-                <p className="font-semibold text-[var(--color-brand)]">{data.day}</p>
-              </div>
-            )}
+            {/* Hero header */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold leading-tight mb-3" style={{ color: 'var(--color-text)' }}>
+                {data.longname}
+              </h1>
+              <p className="text-xs font-semibold tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
+                {formatDisplayDate(safeDate)}
+              </p>
+            </div>
 
-            {data.readings.length === 0 ? (
-              <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-                <p className="mb-1 text-white/60">Readings not available in this format.</p>
-                <a
-                  href={usccbUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-block rounded-full bg-[var(--color-brand)] px-5 py-2 text-sm font-semibold text-black"
+            {/* Reading sections */}
+            <div className="space-y-5">
+              {data.sections.map((s, i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl p-6"
+                  style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}
                 >
-                  View on USCCB →
-                </a>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {data.readings.map((r, i) => (
-                  <div key={i} className="rounded-xl p-5" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-                    {r.title && (
-                      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[var(--color-brand)]">
-                        {r.title}
-                      </p>
-                    )}
-                    {r.source && (
-                      <p className="mb-3 text-sm font-semibold text-white">{r.source}</p>
-                    )}
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed" style={{ color: 'var(--color-text)' }}>
-                      {r.body}
+                  {/* Heading (e.g. "First reading") */}
+                  {s.heading && (
+                    <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>
+                      {s.heading}
                     </p>
-                  </div>
-                ))}
+                  )}
 
-                <a
-                  href={usccbUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-center text-xs pb-8" style={{ color: 'var(--color-text-muted)' }}
-                >
-                  Also available on USCCB →
-                </a>
-              </div>
-            )}
+                  {/* Citation pill (e.g. "Hosea 8:4") */}
+                  {s.ref && (
+                    <div
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 mb-5"
+                      style={{ backgroundColor: 'var(--color-card-2)', border: '1px solid var(--color-border)' }}
+                    >
+                      <span
+                        className="w-1 h-4 rounded-full shrink-0"
+                        style={{ backgroundColor: 'var(--color-brand)' }}
+                      />
+                      <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                        {s.ref}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Reading body */}
+                  <p
+                    className="text-base leading-relaxed"
+                    style={{ color: 'var(--color-text)' }}
+                  >
+                    {stripHtml(s.body)}
+                  </p>
+                </div>
+              ))}
+            </div>
           </>
         )}
       </div>
