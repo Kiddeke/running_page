@@ -139,7 +139,7 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
         </p>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <p className="text-xl font-bold text-[var(--color-brand)]">
+            <p className="text-xl font-bold text-white">
               {(selectedStats.distance / M_TO_DIST).toFixed(1)}
             </p>
             <p className="text-xs text-white/50">{DIST_UNIT}</p>

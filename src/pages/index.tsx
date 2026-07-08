@@ -425,7 +425,7 @@ const Index = () => {
             onClick={() => setActiveTab(tab)}
             className={`px-5 py-2 text-sm font-semibold capitalize tracking-wide transition-colors ${
               activeTab === tab
-                ? 'border-b-2 border-[var(--color-brand)] text-[var(--color-brand)]'
+                ? 'border-b-2 border-[var(--color-brand)] text-white'
                 : 'text-white hover:text-white/70'
             }`}
           >

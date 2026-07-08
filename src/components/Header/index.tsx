@@ -68,7 +68,7 @@ const Header = () => {
             <a
               key={n.url}
               href={n.url}
-              className="mr-3 text-lg lg:mr-4 lg:text-base"
+              className="mr-3 text-lg text-white hover:text-white/70 lg:mr-4 lg:text-base"
             >
               {n.name}
             </a>
