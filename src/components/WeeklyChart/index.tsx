@@ -123,7 +123,10 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
   const handleChartClick = (data: { activeLabel?: string }) => {
     if (data?.activeLabel) {
       const key = labelToKey.get(data.activeLabel);
-      if (key) setSelectedWeekKey(key);
+      if (key && key !== selectedWeekKey) {
+        setSelectedWeekKey(key);
+        navigator.vibrate?.(8);
+      }
     }
   };
 
