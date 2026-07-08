@@ -35,6 +35,21 @@ const getWeekLabel = (weekKey: string): string => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
+const monthLabelForWeek = (weekKey: string): string => {
+  const start = parseLocalDate(weekKey);
+  for (let d = 0; d < 7; d++) {
+    const day = new Date(
+      start.getFullYear(),
+      start.getMonth(),
+      start.getDate() + d
+    );
+    if (day.getDate() === 1) {
+      return day.toLocaleDateString('en-US', { month: 'short' });
+    }
+  }
+  return '';
+};
+
 const getWeekRange = (weekKey: string): string => {
   const start = parseLocalDate(weekKey);
   const end = new Date(
@@ -238,10 +253,24 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
             </defs>
             <XAxis
               dataKey="week"
-              tick={{ fontSize: 9, fill: 'var(--color-text-muted)' }}
+              tick={({ x, y, payload }: any) => {
+                const lbl = monthLabelForWeek(payload.value);
+                if (!lbl) return <g />;
+                return (
+                  <text
+                    x={x}
+                    y={y + 10}
+                    textAnchor="middle"
+                    fill="var(--color-text-muted)"
+                    fontSize={9}
+                  >
+                    {lbl}
+                  </text>
+                );
+              }}
               axisLine={false}
               tickLine={false}
-              interval="preserveStartEnd"
+              interval={0}
             />
             <YAxis hide domain={[0, 'auto']} />
             <Tooltip content={() => null} cursor={false} />
