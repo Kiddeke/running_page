@@ -437,7 +437,7 @@ const Index = () => {
                 : { color: 'var(--color-text-muted)' }
             }
           >
-            {tab === 'map' ? 'Journey' : tab === 'faith' ? 'Faith' : 'Stats'}
+            {tab === 'map' ? 'Pommel' : tab === 'faith' ? 'Faith' : 'Stats'}
           </button>
         ))}
       </div>

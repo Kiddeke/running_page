@@ -252,7 +252,7 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
               </linearGradient>
             </defs>
             <XAxis
-              dataKey="week"
+              dataKey="weekKey"
               tick={({ x, y, payload }: any) => {
                 const lbl = monthLabelForWeek(payload.value);
                 if (!lbl) return <g />;
