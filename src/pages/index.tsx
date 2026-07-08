@@ -19,7 +19,7 @@ import YearsStat from '@/components/YearsStat';
 import MassCalendar from '@/components/MassCalendar';
 
 const FaithTab = lazy(() => import('@/components/FaithTab'));
-const StatsTab = lazy(() => import('@/components/StatsTab'));
+const ActivitiesTab = lazy(() => import('@/components/ActivitiesTab'));
 const WeeklyChart = lazy(() => import('@/components/WeeklyChart'));
 import useActivities from '@/hooks/useActivities';
 import { useInterval } from '@/hooks/useInterval';
@@ -409,7 +409,9 @@ const Index = () => {
   }, [year, locateActivity, runs, thisYear]);
 
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'map' | 'jesus' | 'stats'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'jesus' | 'activities'>(
+    'map'
+  );
 
   return (
     <Layout>
@@ -422,7 +424,7 @@ const Index = () => {
         className="mb-4 flex w-full gap-1 lg:px-0"
         style={{ borderBottom: '1px solid var(--color-border)' }}
       >
-        {(['map', 'jesus', 'stats'] as const).map((tab) => (
+        {(['map', 'jesus', 'activities'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -437,7 +439,11 @@ const Index = () => {
                 : { color: 'var(--color-text-muted)' }
             }
           >
-            {tab === 'map' ? 'Activity' : tab === 'jesus' ? 'Jesus' : 'Stats'}
+            {tab === 'map'
+              ? 'Activity'
+              : tab === 'jesus'
+                ? 'Jesus'
+                : 'Activities'}
           </button>
         ))}
       </div>
@@ -457,14 +463,19 @@ const Index = () => {
             <FaithTab />
           </Suspense>
         </div>
-      ) : activeTab === 'stats' ? (
-        <div className="w-full">
+      ) : activeTab === 'activities' ? (
+        <div className="w-full px-4">
           <Suspense
             fallback={
-              <div className="p-8 text-center text-white/40">Loading...</div>
+              <div
+                className="p-8 text-center"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                Loading...
+              </div>
             }
           >
-            <StatsTab year={year} onYearChange={changeYear} />
+            <ActivitiesTab />
           </Suspense>
         </div>
       ) : (
