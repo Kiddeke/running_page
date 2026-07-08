@@ -440,7 +440,7 @@ const Index = () => {
             }
           >
             {tab === 'map'
-              ? 'Activity'
+              ? 'Profile'
               : tab === 'jesus'
                 ? 'Jesus'
                 : 'Activities'}
