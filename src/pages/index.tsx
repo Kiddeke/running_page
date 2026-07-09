@@ -18,6 +18,7 @@ import SVGStat from '@/components/SVGStat';
 import YearsStat from '@/components/YearsStat';
 import MassCalendar from '@/components/MassCalendar';
 import GoalsCard from '@/components/GoalsCard';
+import ProfileCards from '@/components/ProfileCards';
 
 const FaithTab = lazy(() => import('@/components/FaithTab'));
 const ActivitiesTab = lazy(() => import('@/components/ActivitiesTab'));
@@ -411,7 +412,7 @@ const Index = () => {
 
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<
-    'map' | 'heatmap' | 'commits' | 'jesus' | 'activities'
+    'map' | 'heatmap' | 'commits' | 'stats' | 'jesus' | 'activities'
   >('map');
 
   return (
@@ -428,34 +429,36 @@ const Index = () => {
           scrollbarWidth: 'none',
         }}
       >
-        {(['map', 'heatmap', 'commits', 'jesus', 'activities'] as const).map(
-          (tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className="px-5 py-2 text-sm font-semibold tracking-wide capitalize transition-colors"
-              style={
-                activeTab === tab
-                  ? {
-                      borderBottom: '2px solid var(--color-brand)',
-                      color: 'var(--color-text)',
-                      marginBottom: '-1px',
-                    }
-                  : { color: 'var(--color-text-muted)' }
-              }
-            >
-              {tab === 'map'
-                ? 'Profile'
-                : tab === 'heatmap'
-                  ? 'Heatmap'
-                  : tab === 'commits'
-                    ? 'Commits'
+        {(
+          ['map', 'heatmap', 'commits', 'stats', 'jesus', 'activities'] as const
+        ).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className="px-5 py-2 text-sm font-semibold tracking-wide capitalize transition-colors"
+            style={
+              activeTab === tab
+                ? {
+                    borderBottom: '2px solid var(--color-brand)',
+                    color: 'var(--color-text)',
+                    marginBottom: '-1px',
+                  }
+                : { color: 'var(--color-text-muted)' }
+            }
+          >
+            {tab === 'map'
+              ? 'Profile'
+              : tab === 'heatmap'
+                ? 'Heatmap'
+                : tab === 'commits'
+                  ? 'Commits'
+                  : tab === 'stats'
+                    ? 'Stats'
                     : tab === 'jesus'
                       ? 'Jesus'
                       : 'Activities'}
-            </button>
-          )
-        )}
+          </button>
+        ))}
       </div>
 
       {activeTab === 'heatmap' ? (
@@ -479,6 +482,18 @@ const Index = () => {
       ) : activeTab === 'commits' ? (
         <div className="w-full px-4">
           <SVGStat />
+        </div>
+      ) : activeTab === 'stats' ? (
+        <div className="w-full px-4">
+          {(viewState.zoom ?? 0) <= 3 && IS_CHINESE ? (
+            <LocationStat
+              changeYear={changeYear}
+              changeCity={changeCity}
+              changeTitle={changeTitle}
+            />
+          ) : (
+            <YearsStat year={year} onClick={changeYear} />
+          )}
         </div>
       ) : activeTab === 'jesus' ? (
         <div className="w-full px-4">
@@ -511,7 +526,7 @@ const Index = () => {
           </Suspense>
         </div>
       ) : (
-        <div className="w-full px-4">
+        <div className="w-full px-4 pb-8">
           <div className="mt-6 mb-5">
             <MassCalendar />
           </div>
@@ -519,17 +534,7 @@ const Index = () => {
             <WeeklyChart />
           </Suspense>
           <GoalsCard />
-          <div className="mt-6">
-            {(viewState.zoom ?? 0) <= 3 && IS_CHINESE ? (
-              <LocationStat
-                changeYear={changeYear}
-                changeCity={changeCity}
-                changeTitle={changeTitle}
-              />
-            ) : (
-              <YearsStat year={year} onClick={changeYear} />
-            )}
-          </div>
+          <ProfileCards />
         </div>
       )}
       {/* Enable Audiences in Vercel Analytics: https://vercel.com/docs/concepts/analytics/audiences/quickstart */}

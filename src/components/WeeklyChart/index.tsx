@@ -35,25 +35,21 @@ const getWeekLabel = (weekKey: string): string => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-// For a list of week keys, return one tick per month: the middle week of
-// that month's visible span, mapped to the month's short name.
+// For a list of week keys, return one tick per month placed on that month's
+// first week (the week whose Monday falls within the month's first 7 days).
+// Month boundaries land every 4-5 weeks, so ticks come out evenly spaced.
 const monthAxisTicks = (
   weekKeys: string[]
 ): { ticks: string[]; formatter: (key: string) => string } => {
-  const monthGroups = new Map<string, string[]>();
-  weekKeys.forEach((key) => {
-    const d = parseLocalDate(key);
-    const monthKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
-    if (!monthGroups.has(monthKey)) monthGroups.set(monthKey, []);
-    monthGroups.get(monthKey)!.push(key);
-  });
   const ticks: string[] = [];
   const labels = new Map<string, string>();
-  monthGroups.forEach((keys, monthKey) => {
-    const mid = keys[Math.floor(keys.length / 2)];
-    ticks.push(mid);
-    const d = parseLocalDate(monthKey + '-01');
-    labels.set(mid, d.toLocaleDateString('en-US', { month: 'short' }));
+  weekKeys.forEach((key) => {
+    const d = parseLocalDate(key);
+    const prevWeek = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 7);
+    if (prevWeek.getMonth() !== d.getMonth()) {
+      ticks.push(key);
+      labels.set(key, d.toLocaleDateString('en-US', { month: 'short' }));
+    }
   });
   return { ticks, formatter: (key: string) => labels.get(key) ?? '' };
 };
@@ -266,7 +262,11 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
               dataKey="weekKey"
               ticks={monthTicks}
               tickFormatter={monthFormatter}
-              tick={{ fill: 'var(--color-text-muted)', fontSize: 9 }}
+              tick={{
+                fill: 'var(--color-text)',
+                fontSize: 12,
+                fontWeight: 700,
+              }}
               axisLine={false}
               tickLine={false}
             />
@@ -289,8 +289,9 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
                 label={{
                   value: `${Math.round(maxDistance)}`,
                   position: 'right',
-                  fill: 'var(--color-text-muted)',
-                  fontSize: 9,
+                  fill: 'var(--color-text)',
+                  fontSize: 12,
+                  fontWeight: 700,
                 }}
               />
             )}
@@ -303,8 +304,9 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
                 label={{
                   value: `${Math.round(midDistance)}`,
                   position: 'right',
-                  fill: 'var(--color-text-muted)',
-                  fontSize: 9,
+                  fill: 'var(--color-text)',
+                  fontSize: 12,
+                  fontWeight: 700,
                 }}
               />
             )}
