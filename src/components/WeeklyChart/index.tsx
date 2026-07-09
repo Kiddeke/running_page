@@ -240,7 +240,7 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
         <ResponsiveContainer width="100%" height={140}>
           <AreaChart
             data={weeklyData}
-            margin={{ top: 10, right: 34, left: 4, bottom: 0 }}
+            margin={{ top: 10, right: 52, left: 4, bottom: 0 }}
             onClick={handleChartClick}
             style={{ cursor: 'pointer' }}
           >
@@ -287,7 +287,7 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
                 strokeWidth={1}
                 strokeDasharray="3 3"
                 label={{
-                  value: `${Math.round(maxDistance)}`,
+                  value: `${Math.round(maxDistance)} ${DIST_UNIT}`,
                   position: 'right',
                   fill: 'var(--color-text)',
                   fontSize: 12,
@@ -302,7 +302,7 @@ const WeeklyChart = ({ weeksBack = 12 }: WeeklyChartProps) => {
                 strokeWidth={1}
                 strokeDasharray="3 3"
                 label={{
-                  value: `${Math.round(midDistance)}`,
+                  value: `${Math.round(midDistance)} ${DIST_UNIT}`,
                   position: 'right',
                   fill: 'var(--color-text)',
                   fontSize: 12,
