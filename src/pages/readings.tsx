@@ -385,7 +385,7 @@ const ReadingsPage = () => {
                       className="mb-3 text-xs font-bold tracking-widest uppercase"
                       style={{ color: 'var(--color-text-muted)' }}
                     >
-                      {s.heading}
+                      {stripHtml(s.heading)}
                     </p>
                   )}
 
@@ -406,7 +406,7 @@ const ReadingsPage = () => {
                         className="text-sm font-semibold"
                         style={{ color: 'var(--color-text)' }}
                       >
-                        {s.ref}
+                        {stripHtml(s.ref)}
                       </span>
                     </div>
                   )}
