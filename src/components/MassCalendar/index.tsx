@@ -16,13 +16,15 @@ const MassCalendar = () => {
   today.setHours(0, 0, 0, 0);
   const todayStr = toLocalDateStr(today);
 
-  // Start: previous Sunday (or today if today is Sunday)
+  // Universalis's free JSONP access only covers "yesterday, today, and the
+  // week ahead" (see universalis.com/n-other-dates.htm) — dates outside
+  // that window return no data at all (the fetch just times out), so the
+  // calendar must not offer days it can't actually load.
   const start = new Date(today);
-  start.setDate(today.getDate() - today.getDay());
+  start.setDate(today.getDate() - 1);
 
-  // End: two Sundays from today
   const end = new Date(today);
-  end.setDate(today.getDate() + (14 - today.getDay()));
+  end.setDate(today.getDate() + 6);
 
   const days: Date[] = [];
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
