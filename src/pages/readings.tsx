@@ -33,49 +33,6 @@ interface MassData {
   copyright?: string;
 }
 
-const parseUniversalisJson = (json: any, dateStr: string): MassData => {
-  const longname: string = json.longname ?? json.day ?? '';
-  const rawSections: {
-    heading?: string;
-    ref?: string;
-    title?: string;
-    source?: string;
-    body?: string;
-  }[] = json.Mass?.sections ?? json.sections ?? [];
-  const sections: Section[] = rawSections
-    .filter((s) => s.body)
-    .map((s) => ({
-      heading: s.heading ?? s.title ?? '',
-      ref: s.ref ?? s.source ?? '',
-      body: s.body ?? '',
-    }));
-  return { longname, date: dateStr, sections };
-};
-
-const tryFetchJson = async (
-  url: string,
-  trace: string[],
-  timeoutMs = 6000
-): Promise<any | null> => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) {
-      trace.push(`local ${url} -> HTTP ${res.status}`);
-      return null;
-    }
-    return await res.json();
-  } catch (e) {
-    trace.push(
-      `local ${url} -> ${e instanceof Error ? e.message : 'fetch error'}`
-    );
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-};
-
 // Load Universalis via JSONP — fixed callback name "universalisCallback"
 const loadUniversalisJsonp = (
   dateStr: string,
@@ -144,34 +101,14 @@ const parseUniversalisFlat = (data: any, dateStr: string): MassData => {
   return { longname, date: dateStr, sections, copyright };
 };
 
-// Base path for same-origin static files (respects /running_page/ prefix on GH Pages)
-const BASE = import.meta.env.BASE_URL?.replace(/\/$/, '') ?? '';
-
 const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
-  const compact = dateStr.replace(/-/g, '');
   const trace: string[] = [];
 
-  // 1. Same-origin static file generated at build time — fastest, no CORS
-  const localJson = await tryFetchJson(
-    `${BASE}/readings/${compact}.json`,
-    trace
-  );
-  if (localJson) {
-    // Try flat structure first, fall back to sections array
-    const flat = parseUniversalisFlat(localJson, dateStr);
-    if (flat.sections.length > 0) return flat;
-    const nested = parseUniversalisJson(localJson, dateStr);
-    if (nested.sections.length > 0) return nested;
-    trace.push('local json -> parsed but 0 sections');
-  }
-
-  // 2. Universalis JSONP — bypasses CORS via <script> tag, fixed callback
+  // Universalis JSONP — bypasses CORS via <script> tag, fixed callback
   const jsonpData = await loadUniversalisJsonp(dateStr, trace);
   if (jsonpData) {
     const flat = parseUniversalisFlat(jsonpData, dateStr);
     if (flat.sections.length > 0) return flat;
-    const nested = parseUniversalisJson(jsonpData, dateStr);
-    if (nested.sections.length > 0) return nested;
     trace.push('jsonp -> parsed but 0 sections');
   }
 
