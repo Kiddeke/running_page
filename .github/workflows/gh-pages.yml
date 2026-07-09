@@ -96,10 +96,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
-      - name: Fetch Catholic readings
-        run: |
-          pip install httpx beautifulsoup4
-          python scripts/fetch-readings.py
       - name: Build
         env:
           REPO_NAME: ${{ github.event.repository.name }}
