@@ -358,16 +358,31 @@ const ProfileCards = () => {
     const weekdayDist = new Array(7).fill(0) as number[];
     const hourRuns = new Array(24).fill(0) as number[];
     const dayDist = new Map<string, number>();
+    const weekDistAll = new Map<string, number>();
+    const runDistBuckets = new Array(11).fill(0) as number[];
+    let totalBeats = 0;
+    let hrSeconds = 0;
     let longest: Activity | null = null;
+    let firstRun: Activity | null = null;
 
     activities.forEach((a) => {
       const dist = a.distance / M_TO_DIST;
       const day = a.start_date_local.slice(0, 10);
       dayDist.set(day, (dayDist.get(day) ?? 0) + dist);
+      const wkAll = getWeekKey(day);
+      weekDistAll.set(wkAll, (weekDistAll.get(wkAll) ?? 0) + dist);
       totalMeters += a.distance;
       totalRuns += 1;
-      totalSeconds += convertMovingTime2Sec(a.moving_time);
+      const secs = convertMovingTime2Sec(a.moving_time);
+      totalSeconds += secs;
       totalElevM += a.elevation_gain ?? 0;
+      if (a.average_heartrate) {
+        totalBeats += a.average_heartrate * (secs / 60);
+        hrSeconds += secs;
+      }
+      runDistBuckets[Math.min(10, Math.floor(dist))] += 1;
+      if (!firstRun || a.start_date_local < firstRun.start_date_local)
+        firstRun = a;
 
       // getDay(): 0=Sun; shift so 0=Mon to match the display order
       const wd = (parseLocalDate(day).getDay() + 6) % 7;
@@ -423,6 +438,39 @@ const ProfileCards = () => {
       .filter((a) => a.start_date_local.slice(0, 7) === monthKey)
       .sort((a, b) => (a.start_date_local < b.start_date_local ? 1 : -1));
 
+    // Distance covered per pace bucket (whole min/unit, capped at 15+)
+    const paceBucketMap = new Map<number, number>();
+    paceable.forEach((a) => {
+      const paceMin = M_TO_DIST / 60 / a.average_speed;
+      const bucket = Math.min(15, Math.floor(paceMin));
+      paceBucketMap.set(
+        bucket,
+        (paceBucketMap.get(bucket) ?? 0) + a.distance / M_TO_DIST
+      );
+    });
+    const paceBuckets = [...paceBucketMap.entries()].sort(
+      (a, b) => a[0] - b[0]
+    );
+
+    const topWeeks = [...weekDistAll.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+    const topHR = activities
+      .filter((a) => (a.average_heartrate ?? 0) > 0)
+      .sort((a, b) => (b.average_heartrate ?? 0) - (a.average_heartrate ?? 0))
+      .slice(0, 5);
+
+    const fr = firstRun as Activity | null;
+    const daysSinceFirst = fr
+      ? Math.max(
+          1,
+          Math.floor(
+            (now.getTime() - parseLocalDate(fr.start_date_local).getTime()) /
+              86400000
+          )
+        )
+      : 0;
+
     let favoriteWeekday = 0;
     weekdayRuns.forEach((n, i) => {
       if (n > weekdayRuns[favoriteWeekday]) favoriteWeekday = i;
@@ -458,6 +506,14 @@ const ProfileCards = () => {
       monthRunList,
       favoriteWeekday,
       favoriteHour,
+      paceBuckets,
+      topWeeks,
+      topHR,
+      totalBeats,
+      hrSeconds,
+      runDistBuckets,
+      daysSinceFirst,
+      firstRun: firstRun as Activity | null,
       longest: longest as Activity | null,
       fastest: (topFastest[0] ?? null) as Activity | null,
     };
@@ -474,6 +530,24 @@ const ProfileCards = () => {
   const earthPct = (metrics.totalMeters / 40075000) * 100;
   const trackLaps = metrics.totalMeters / 400;
   const donuts = ((metrics.totalMeters / 1609.344) * 100) / 250;
+
+  const avgHR =
+    metrics.hrSeconds > 0 ? metrics.totalBeats / (metrics.hrSeconds / 60) : 0;
+  const beatsLabel =
+    metrics.totalBeats >= 1e6
+      ? `${(metrics.totalBeats / 1e6).toFixed(1)}M`
+      : `${Math.round(metrics.totalBeats / 1000)}K`;
+  const topHRMax = metrics.topHR[0]?.average_heartrate ?? 0;
+  const daysSince = metrics.daysSinceFirst;
+  const yearsRunning = daysSince / 365.25;
+  const avgRunDist = metrics.totalRuns > 0 ? totalDist / metrics.totalRuns : 0;
+  const topWeekMax = metrics.topWeeks[0]?.[1] ?? 0;
+  const paceBucketMax = Math.max(...metrics.paceBuckets.map(([, d]) => d), 0);
+  const lastDistBucket = metrics.runDistBuckets.reduce(
+    (last, n, i) => (n > 0 ? i : last),
+    0
+  );
+  const distBucketMax = Math.max(...metrics.runDistBuckets, 1);
 
   const yearMonthMax = Math.max(...metrics.yearMonths, 0);
   const weekdayMax = Math.max(...metrics.weekdayRuns, 0);
@@ -619,6 +693,26 @@ const ProfileCards = () => {
                     : 0
                 }
                 right={`${formatPace(a.average_speed)}`}
+              />
+            ))}
+          </div>
+          <p
+            className="mt-4 mb-2 text-xs font-semibold tracking-widest uppercase"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Distance by Pace
+          </p>
+          <div className="space-y-2">
+            {metrics.paceBuckets.map(([minute, dist]) => (
+              <BarRow
+                key={minute}
+                label={
+                  minute >= 15
+                    ? `15'+ /${DIST_UNIT}`
+                    : `${minute}'–${minute + 1}' /${DIST_UNIT}`
+                }
+                frac={paceBucketMax > 0 ? dist / paceBucketMax : 0}
+                right={`${dist.toFixed(1)} ${DIST_UNIT}`}
               />
             ))}
           </div>
@@ -794,6 +888,147 @@ const ProfileCards = () => {
           </>
         );
       })(),
+    },
+    {
+      key: 'bestweek',
+      label: 'Best Week',
+      value: (metrics.topWeeks[0]?.[1] ?? 0).toFixed(1),
+      unit: DIST_UNIT,
+      sub: metrics.topWeeks[0]
+        ? `week of ${recordDate(metrics.topWeeks[0][0])}`
+        : '',
+      detail: (
+        <>
+          <div className="space-y-2">
+            {metrics.topWeeks.map(([wk, dist], i) => (
+              <BarRow
+                key={wk}
+                label={`${i + 1}. ${recordDate(wk)}`}
+                frac={topWeekMax > 0 ? dist / topWeekMax : 0}
+                right={`${dist.toFixed(1)} ${DIST_UNIT}`}
+              />
+            ))}
+          </div>
+          <p
+            className="mt-4 text-xs"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Your five biggest weeks ever. Weeks start on Monday.
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'heartbeats',
+      label: 'Heartbeats',
+      value: beatsLabel,
+      sub: avgHR > 0 ? `${Math.round(avgHR)} bpm average` : 'no HR data yet',
+      detail: (
+        <>
+          <div className="mb-4 grid grid-cols-2 gap-3">
+            <DetailTile
+              label="Total Beats"
+              value={Math.round(metrics.totalBeats).toLocaleString()}
+              sub="while running"
+            />
+            <DetailTile label="Avg HR" value={`${Math.round(avgHR)} bpm`} />
+          </div>
+          <p
+            className="mb-2 text-xs font-semibold tracking-widest uppercase"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Hardest Efforts
+          </p>
+          <div className="space-y-2">
+            {metrics.topHR.map((a, i) => (
+              <BarRow
+                key={a.run_id}
+                label={`${i + 1}. ${recordDate(a.start_date_local)}`}
+                frac={topHRMax > 0 ? (a.average_heartrate ?? 0) / topHRMax : 0}
+                right={`${Math.round(a.average_heartrate ?? 0)} bpm`}
+              />
+            ))}
+          </div>
+          <p
+            className="mt-4 text-xs"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Estimated from average heart rate × moving time per run.
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'dayone',
+      label: 'Day One',
+      value: yearsRunning.toFixed(1),
+      unit: 'years',
+      sub: metrics.firstRun
+        ? `since ${recordDate(metrics.firstRun.start_date_local)}`
+        : '',
+      detail: (
+        <>
+          <div className="mb-4 grid grid-cols-2 gap-3">
+            <DetailTile
+              label="First Run"
+              value={
+                metrics.firstRun
+                  ? recordDate(metrics.firstRun.start_date_local)
+                  : '—'
+              }
+              sub={
+                metrics.firstRun
+                  ? `${(metrics.firstRun.distance / M_TO_DIST).toFixed(1)} ${DIST_UNIT}`
+                  : ''
+              }
+            />
+            <DetailTile label="Days Since" value={daysSince.toLocaleString()} />
+            <DetailTile label="Runs Since" value={`${metrics.totalRuns}`} />
+            <DetailTile
+              label="Avg / Week"
+              value={(metrics.totalRuns / Math.max(1, daysSince / 7)).toFixed(
+                1
+              )}
+              sub="runs"
+            />
+          </div>
+          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+            Every streak, PR, and donut traces back to this day.
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'typical',
+      label: 'Typical Run',
+      value: avgRunDist.toFixed(1),
+      unit: DIST_UNIT,
+      sub: 'your average run',
+      detail: (
+        <>
+          <p
+            className="mb-2 text-xs font-semibold tracking-widest uppercase"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Runs by Distance
+          </p>
+          <div className="space-y-2">
+            {metrics.runDistBuckets
+              .slice(0, lastDistBucket + 1)
+              .map((count, i) => (
+                <BarRow
+                  key={i}
+                  label={
+                    i >= 10 ? `10+ ${DIST_UNIT}` : `${i}–${i + 1} ${DIST_UNIT}`
+                  }
+                  frac={count / distBucketMax}
+                  right={`${count} run${count === 1 ? '' : 's'}`}
+                  dim={count === 0}
+                />
+              ))}
+          </div>
+        </>
+      ),
     },
   ];
 
