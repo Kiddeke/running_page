@@ -24,11 +24,16 @@ const DRAW_DURATION_MS = 2800;
 // Using the same real-world projection for both the tile mosaic and the route
 // overlay keeps distances proportional in both axes, so the route never
 // looks stretched relative to the map underneath it.
-const lngLatToPixel = (lng: number, lat: number, zoom: number): [number, number] => {
+const lngLatToPixel = (
+  lng: number,
+  lat: number,
+  zoom: number
+): [number, number] => {
   const scale = TILE_SIZE * 2 ** zoom;
   const x = ((lng + 180) / 360) * scale;
   const sinLat = Math.sin((lat * Math.PI) / 180);
-  const y = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale;
+  const y =
+    (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale;
   return [x, y];
 };
 
@@ -208,8 +213,13 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
     Math.floor((containerMinY + height - 1) / TILE_SIZE)
   );
 
-  const tiles: { key: string; x: number; y: number; left: number; top: number }[] =
-    [];
+  const tiles: {
+    key: string;
+    x: number;
+    y: number;
+    left: number;
+    top: number;
+  }[] = [];
   for (let tx = tileXStart; tx <= tileXEnd; tx++) {
     for (let ty = tileYStart; ty <= tileYEnd; ty++) {
       tiles.push({

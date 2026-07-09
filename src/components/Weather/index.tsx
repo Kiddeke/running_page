@@ -23,7 +23,7 @@ const WMO_CODES: Record<number, { label: string; emoji: string }> = {
   99: { label: 'Thunderstorm', emoji: '⛈️' },
 };
 
-interface Weather {
+interface WeatherData {
   tempF: number;
   condition: string;
   emoji: string;
@@ -31,7 +31,7 @@ interface Weather {
 }
 
 const Weather = () => {
-  const [weather, setWeather] = useState<Weather | null>(null);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
 
   useEffect(() => {
     fetch(

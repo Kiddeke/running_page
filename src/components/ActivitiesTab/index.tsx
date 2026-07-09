@@ -98,10 +98,7 @@ const ActivityRow = ({ activity, expanded, onToggle }: ActivityRowProps) => {
           style={{ color: 'var(--color-text-muted)' }}
         >
           <span>
-            <span
-              className="font-bold"
-              style={{ color: 'var(--color-text)' }}
-            >
+            <span className="font-bold" style={{ color: 'var(--color-text)' }}>
               {distance}
             </span>{' '}
             {DIST_UNIT}
@@ -173,7 +170,9 @@ const ActivitiesTab = () => {
   };
 
   const expandAll = () => {
-    setExpandedIds(new Set(sortedActivities.map((activity) => activity.run_id)));
+    setExpandedIds(
+      new Set(sortedActivities.map((activity) => activity.run_id))
+    );
   };
 
   const collapseAll = () => {

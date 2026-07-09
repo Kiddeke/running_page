@@ -36,7 +36,7 @@ const MassCalendar = () => {
   return (
     <div
       ref={scrollRef}
-      className="flex scrollbar-none gap-1 overflow-x-auto pb-1"
+      className="scrollbar-none flex gap-1 overflow-x-auto pb-1"
       style={{ scrollbarWidth: 'none' }}
     >
       {days.map((d) => {

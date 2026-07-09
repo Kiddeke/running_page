@@ -15,7 +15,11 @@ import MassCalendar from '@/components/MassCalendar';
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export type FaithType =
-  'mass' | 'confession' | 'prayer' | 'almsgiving' | 'fasting';
+  | 'mass'
+  | 'confession'
+  | 'prayer'
+  | 'almsgiving'
+  | 'fasting';
 
 export interface FaithActivity {
   id: string;
