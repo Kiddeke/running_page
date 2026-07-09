@@ -20,9 +20,9 @@ const MAX_ZOOM = 17;
 const BASE_DRAW_DURATION_MS = 2800;
 // 50% slower overall, per user request.
 const DRAW_DURATION_MS = Math.round(BASE_DRAW_DURATION_MS * 1.5);
-// Slow, explicit ease-in/ease-out: the first/last 500ms of the draw ramp
+// Slow, explicit ease-in/ease-out: the first/last 1.5s of the draw ramp
 // smoothly up to/down from full speed, instead of the whole thing easing.
-const RAMP_MS = 500;
+const RAMP_MS = 1500;
 
 const smoothstepIntegral = (x: number) => x ** 3 - x ** 4 / 2;
 
