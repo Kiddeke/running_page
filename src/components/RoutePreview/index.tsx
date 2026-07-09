@@ -87,64 +87,99 @@ const chooseZoom = (
 const TILE_SUBDOMAINS = 'abcd';
 const tileSubdomain = (x: number, y: number) => TILE_SUBDOMAINS[(x + y) % 4];
 
-// Draws a route path once, animating the stroke from hidden to fully drawn
-// while a dot travels along the same path, then leaves both settled in
-// their final state. The path's stroke-dashoffset and the dot's position
-// are both computed from the same progress value on every frame (instead
-// of a CSS transition driving the line and a separate SMIL animateMotion
-// driving the dot), so the dot can never lag behind or run ahead of the line.
-//
-// Deliberately keyed on `indoor` only, NOT `d`: the container's measured
-// width settles a frame or two after mount (useContainerWidth starts from a
-// fallback and corrects itself, sometimes more than once as surrounding
-// layout finishes reflowing), which re-projects this same route to new
-// pixel coordinates and changes `d`. If this effect depended on `d`, each
-// of those corrections restarted the timer from zero, which looked like
-// part of the route snapping back and redrawing mid-animation while another
-// part stayed put. Reading geometry fresh off the live DOM node every frame
-// (instead of depending on the `d` prop) lets the reveal keep adapting to
-// re-projection without ever restarting.
+type Point = [number, number];
+
+const pointDistance = (a: Point, b: Point) =>
+  Math.hypot(b[0] - a[0], b[1] - a[1]);
+
+const buildPathD = (points: readonly Point[]): string =>
+  points
+    .map(
+      ([x, y], i) => `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`
+    )
+    .join(' ');
+
+// Truncates `points` to the given fraction (0-1) of the polyline's total
+// arc length, interpolating one extra point for the partial final segment
+// so the cut end doesn't jump between vertices.
+const sliceAtProgress = (
+  points: readonly Point[],
+  progress: number
+): Point[] => {
+  if (points.length < 2 || progress >= 1) return points.slice();
+
+  const cumulative = [0];
+  for (let i = 1; i < points.length; i++) {
+    cumulative.push(
+      cumulative[i - 1] + pointDistance(points[i - 1], points[i])
+    );
+  }
+  const total = cumulative[cumulative.length - 1];
+  if (total === 0) return points.slice();
+
+  const target = progress * total;
+  let idx = 1;
+  while (idx < cumulative.length && cumulative[idx] < target) idx++;
+  if (idx >= cumulative.length) return points.slice();
+
+  const segStart = cumulative[idx - 1];
+  const segEnd = cumulative[idx];
+  const segFrac =
+    segEnd > segStart ? (target - segStart) / (segEnd - segStart) : 0;
+  const [x1, y1] = points[idx - 1];
+  const [x2, y2] = points[idx];
+  const interpolated: Point = [
+    x1 + (x2 - x1) * segFrac,
+    y1 + (y2 - y1) * segFrac,
+  ];
+
+  return [...points.slice(0, idx), interpolated];
+};
+
+// Draws a route by growing a plain `d` string (M/L commands built from the
+// raw point list) each frame, instead of stroke-dasharray/stroke-dashoffset
+// over a fixed path. Safari/WebKit (which is what "Chrome" on iOS also runs
+// on under the hood — Apple requires it) was rendering the dasharray
+// version as several disconnected pieces of the route appearing at once
+// instead of one continuously growing line; a plain, ever-growing path has
+// no dash pattern for any engine to misinterpret. It also sidesteps the
+// need to depend on the container's measured width at all: `pointsRef`
+// always holds the latest projected points, so if the container's width
+// settles a frame or two after mount (useContainerWidth starts from a
+// fallback), the in-progress reveal just keeps growing against the
+// corrected geometry next frame instead of restarting.
 const AnimatedRoute: React.FC<{
-  d: string;
+  points: Point[];
   color: string;
   indoor: boolean;
-}> = ({ d, color, indoor }) => {
+}> = ({ points, color, indoor }) => {
   const pathRef = useRef<SVGPathElement>(null);
   const dotRef = useRef<SVGCircleElement>(null);
+  const pointsRef = useRef(points);
+  pointsRef.current = points;
 
   useLayoutEffect(() => {
     const pathEl = pathRef.current;
+    const dotEl = dotRef.current;
     if (!pathEl || indoor) return;
 
-    // Synchronous initial hide, before the browser paints anything.
-    const initialLength = pathEl.getTotalLength();
-    pathEl.style.strokeDasharray = `${initialLength}`;
-    pathEl.style.strokeDashoffset = `${initialLength}`;
+    const applyProgress = (progress: number) => {
+      const sliced = sliceAtProgress(pointsRef.current, progress);
+      pathEl.setAttribute('d', buildPathD(sliced));
+      if (dotEl && sliced.length > 0) {
+        const [x, y] = sliced[sliced.length - 1];
+        dotEl.setAttribute('cx', `${x}`);
+        dotEl.setAttribute('cy', `${y}`);
+      }
+    };
 
-    const dotEl = dotRef.current;
-    if (dotEl) {
-      const start = pathEl.getPointAtLength(0);
-      dotEl.setAttribute('cx', `${start.x}`);
-      dotEl.setAttribute('cy', `${start.y}`);
-    }
+    applyProgress(0); // synchronous initial state, before the browser paints
 
     let startTime: number | null = null;
     let rafId = requestAnimationFrame(function tick(now) {
       if (startTime === null) startTime = now;
       const elapsed = now - startTime;
-      const progress = trapezoidProgress(elapsed, DRAW_DURATION_MS, RAMP_MS);
-
-      // Re-read length every frame rather than reusing initialLength, so a
-      // mid-animation re-projection (see comment above) can't leave the
-      // dash math referencing stale geometry.
-      const length = pathEl.getTotalLength();
-      pathEl.style.strokeDasharray = `${length}`;
-      pathEl.style.strokeDashoffset = `${length * (1 - progress)}`;
-      if (dotEl) {
-        const point = pathEl.getPointAtLength(progress * length);
-        dotEl.setAttribute('cx', `${point.x}`);
-        dotEl.setAttribute('cy', `${point.y}`);
-      }
+      applyProgress(trapezoidProgress(elapsed, DRAW_DURATION_MS, RAMP_MS));
 
       if (elapsed < DRAW_DURATION_MS) {
         rafId = requestAnimationFrame(tick);
@@ -158,7 +193,7 @@ const AnimatedRoute: React.FC<{
     <>
       <path
         ref={pathRef}
-        d={d}
+        d={indoor ? buildPathD(points) : undefined}
         fill="none"
         stroke={color}
         strokeWidth={3.5}
@@ -341,25 +376,16 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
           {routes.map((route, idx) => {
             if (route.path.length < 2) return null;
             const routeKey = `${idx}-${route.path.length}`;
-            const pathString = route.path
-              .map((coord, i) => {
-                const [x, y] = project(coord[0], coord[1]);
-                return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-              })
-              .join(' ');
-            const [startX, startY] = project(
-              route.path[0][0],
-              route.path[0][1]
+            const projectedPoints: Point[] = route.path.map((coord) =>
+              project(coord[0], coord[1])
             );
-            const [endX, endY] = project(
-              route.path[route.path.length - 1][0],
-              route.path[route.path.length - 1][1]
-            );
+            const [startX, startY] = projectedPoints[0];
+            const [endX, endY] = projectedPoints[projectedPoints.length - 1];
 
             return (
               <g key={routeKey}>
                 <AnimatedRoute
-                  d={pathString}
+                  points={projectedPoints}
                   color={route.color}
                   indoor={route.indoor}
                 />
