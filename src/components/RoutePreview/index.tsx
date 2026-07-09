@@ -2,6 +2,7 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import { pathForRun } from '@/utils/geoUtils';
 import type { Activity } from '@/utils/utils';
 import { NO_ROUTE_DATA, INVALID_ROUTE_DATA, INDOOR_COLOR } from '@/utils/const';
+import { useTheme } from '@/hooks/useTheme';
 import styles from './style.module.css';
 
 interface RoutePreviewProps {
@@ -241,6 +242,7 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
   height = DEFAULT_HEIGHT,
 }) => {
   const [containerRef, width] = useContainerWidth(FALLBACK_WIDTH);
+  const { theme } = useTheme();
   const activitiesWithRoutes = activities.filter(
     (activity) => activity.summary_polyline
   );
@@ -259,12 +261,14 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
     );
   }
 
-  const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
-  const routes = activitiesWithRoutes.map((activity, index) => {
+  // Same accent color used everywhere else in the app (active tab, buttons,
+  // etc.), so the route doesn't look like it's using an unrelated palette.
+  const routeColor = 'var(--color-brand)';
+  const routes = activitiesWithRoutes.map((activity) => {
     const path = pathForRun(activity);
     const indoor =
       activity.subtype === 'indoor' || activity.subtype === 'treadmill';
-    const color = indoor ? INDOOR_COLOR : colors[index % colors.length];
+    const color = indoor ? INDOOR_COLOR : routeColor;
     return { path, color, indoor };
   });
 
@@ -348,10 +352,9 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
     }
   }
 
-  // Always use Carto's colorful Voyager style for the preview background,
-  // regardless of app theme — the muted light_all/dark_all styles read as
-  // plain gray in a card this small.
-  const tileStyle = 'rastertiles/voyager';
+  // Colorful Voyager for light mode; Carto's Dark Matter for dark mode,
+  // which is a dark slate rather than literal black.
+  const tileStyle = theme === 'light' ? 'rastertiles/voyager' : 'dark_all';
 
   return (
     <div className={`${styles.routePreview} ${className || ''}`}>
