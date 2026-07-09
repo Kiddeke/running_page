@@ -410,7 +410,7 @@ const Index = () => {
 
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<
-    'map' | 'heatmap' | 'jesus' | 'activities'
+    'map' | 'heatmap' | 'commits' | 'jesus' | 'activities'
   >('map');
 
   return (
@@ -421,36 +421,61 @@ const Index = () => {
 
       {/* Tab bar */}
       <div
-        className="mb-4 flex w-full gap-1 lg:px-0"
-        style={{ borderBottom: '1px solid var(--color-border)' }}
+        className="scrollbar-none mb-4 flex w-full gap-1 overflow-x-auto lg:px-0"
+        style={{
+          borderBottom: '1px solid var(--color-border)',
+          scrollbarWidth: 'none',
+        }}
       >
-        {(['map', 'heatmap', 'jesus', 'activities'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className="px-5 py-2 text-sm font-semibold tracking-wide capitalize transition-colors"
-            style={
-              activeTab === tab
-                ? {
-                    borderBottom: '2px solid var(--color-brand)',
-                    color: 'var(--color-text)',
-                    marginBottom: '-1px',
-                  }
-                : { color: 'var(--color-text-muted)' }
-            }
-          >
-            {tab === 'map'
-              ? 'Profile'
-              : tab === 'heatmap'
-                ? 'Heatmap'
-                : tab === 'jesus'
-                  ? 'Jesus'
-                  : 'Activities'}
-          </button>
-        ))}
+        {(['map', 'heatmap', 'commits', 'jesus', 'activities'] as const).map(
+          (tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="px-5 py-2 text-sm font-semibold tracking-wide capitalize transition-colors"
+              style={
+                activeTab === tab
+                  ? {
+                      borderBottom: '2px solid var(--color-brand)',
+                      color: 'var(--color-text)',
+                      marginBottom: '-1px',
+                    }
+                  : { color: 'var(--color-text-muted)' }
+              }
+            >
+              {tab === 'map'
+                ? 'Profile'
+                : tab === 'heatmap'
+                  ? 'Heatmap'
+                  : tab === 'commits'
+                    ? 'Commits'
+                    : tab === 'jesus'
+                      ? 'Jesus'
+                      : 'Activities'}
+            </button>
+          )
+        )}
       </div>
 
       {activeTab === 'heatmap' ? (
+        <div className="w-full px-4" id="map-container">
+          <RunMap
+            title={title}
+            viewState={viewState}
+            geoData={animatedGeoData}
+            setViewState={setViewState}
+            changeYear={changeYear}
+            thisYear={year}
+            animationTrigger={animationTrigger}
+          />
+          <RunTable
+            runs={runs}
+            locateActivity={locateActivity}
+            runIndex={runIndex}
+            setRunIndex={setRunIndex}
+          />
+        </div>
+      ) : activeTab === 'commits' ? (
         <div className="w-full px-4">
           <SVGStat />
         </div>
@@ -485,42 +510,23 @@ const Index = () => {
           </Suspense>
         </div>
       ) : (
-        <div className="lg:flex lg:gap-8">
-          <div className="w-full lg:w-1/3">
-            <div className="mt-6 mb-5">
-              <MassCalendar />
-            </div>
-            <Suspense fallback={null}>
-              <WeeklyChart />
-            </Suspense>
-            <div className="mt-6">
-              {(viewState.zoom ?? 0) <= 3 && IS_CHINESE ? (
-                <LocationStat
-                  changeYear={changeYear}
-                  changeCity={changeCity}
-                  changeTitle={changeTitle}
-                />
-              ) : (
-                <YearsStat year={year} onClick={changeYear} />
-              )}
-            </div>
+        <div className="w-full px-4">
+          <div className="mt-6 mb-5">
+            <MassCalendar />
           </div>
-          <div className="w-full lg:w-2/3" id="map-container">
-            <RunMap
-              title={title}
-              viewState={viewState}
-              geoData={animatedGeoData}
-              setViewState={setViewState}
-              changeYear={changeYear}
-              thisYear={year}
-              animationTrigger={animationTrigger}
-            />
-            <RunTable
-              runs={runs}
-              locateActivity={locateActivity}
-              runIndex={runIndex}
-              setRunIndex={setRunIndex}
-            />
+          <Suspense fallback={null}>
+            <WeeklyChart />
+          </Suspense>
+          <div className="mt-6">
+            {(viewState.zoom ?? 0) <= 3 && IS_CHINESE ? (
+              <LocationStat
+                changeYear={changeYear}
+                changeCity={changeCity}
+                changeTitle={changeTitle}
+              />
+            ) : (
+              <YearsStat year={year} onClick={changeYear} />
+            )}
           </div>
         </div>
       )}
