@@ -93,6 +93,17 @@ const tileSubdomain = (x: number, y: number) => TILE_SUBDOMAINS[(x + y) % 4];
 // are both computed from the same progress value on every frame (instead
 // of a CSS transition driving the line and a separate SMIL animateMotion
 // driving the dot), so the dot can never lag behind or run ahead of the line.
+//
+// Deliberately keyed on `indoor` only, NOT `d`: the container's measured
+// width settles a frame or two after mount (useContainerWidth starts from a
+// fallback and corrects itself, sometimes more than once as surrounding
+// layout finishes reflowing), which re-projects this same route to new
+// pixel coordinates and changes `d`. If this effect depended on `d`, each
+// of those corrections restarted the timer from zero, which looked like
+// part of the route snapping back and redrawing mid-animation while another
+// part stayed put. Reading geometry fresh off the live DOM node every frame
+// (instead of depending on the `d` prop) lets the reveal keep adapting to
+// re-projection without ever restarting.
 const AnimatedRoute: React.FC<{
   d: string;
   color: string;
@@ -105,9 +116,10 @@ const AnimatedRoute: React.FC<{
     const pathEl = pathRef.current;
     if (!pathEl || indoor) return;
 
-    const length = pathEl.getTotalLength();
-    pathEl.style.strokeDasharray = `${length}`;
-    pathEl.style.strokeDashoffset = `${length}`;
+    // Synchronous initial hide, before the browser paints anything.
+    const initialLength = pathEl.getTotalLength();
+    pathEl.style.strokeDasharray = `${initialLength}`;
+    pathEl.style.strokeDashoffset = `${initialLength}`;
 
     const dotEl = dotRef.current;
     if (dotEl) {
@@ -122,6 +134,11 @@ const AnimatedRoute: React.FC<{
       const elapsed = now - startTime;
       const progress = trapezoidProgress(elapsed, DRAW_DURATION_MS, RAMP_MS);
 
+      // Re-read length every frame rather than reusing initialLength, so a
+      // mid-animation re-projection (see comment above) can't leave the
+      // dash math referencing stale geometry.
+      const length = pathEl.getTotalLength();
+      pathEl.style.strokeDasharray = `${length}`;
       pathEl.style.strokeDashoffset = `${length * (1 - progress)}`;
       if (dotEl) {
         const point = pathEl.getPointAtLength(progress * length);
@@ -135,7 +152,7 @@ const AnimatedRoute: React.FC<{
     });
 
     return () => cancelAnimationFrame(rafId);
-  }, [d, indoor]);
+  }, [indoor]);
 
   return (
     <>
@@ -354,14 +371,23 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
                   stroke="white"
                   strokeWidth="1.2"
                 />
-                <circle
-                  cx={endX}
-                  cy={endY}
-                  r="3.5"
-                  fill="#e74c3c"
-                  stroke="white"
-                  strokeWidth="1.2"
-                />
+                {/* Indoor routes render statically with no traveling dot,
+                    so they still need a fixed end marker. Routes that
+                    animate don't: the traveling dot already settles at
+                    this exact point once the draw finishes, and it's the
+                    same color as this marker would be, so showing both
+                    just looked like two disconnected dots on the map
+                    before the line ever reached the real one. */}
+                {route.indoor && (
+                  <circle
+                    cx={endX}
+                    cy={endY}
+                    r="3.5"
+                    fill="#e74c3c"
+                    stroke="white"
+                    strokeWidth="1.2"
+                  />
+                )}
               </g>
             );
           })}
