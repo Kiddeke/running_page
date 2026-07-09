@@ -409,9 +409,9 @@ const Index = () => {
   }, [year, locateActivity, runs, thisYear]);
 
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'map' | 'jesus' | 'activities'>(
-    'map'
-  );
+  const [activeTab, setActiveTab] = useState<
+    'map' | 'heatmap' | 'jesus' | 'activities'
+  >('map');
 
   return (
     <Layout>
@@ -424,7 +424,7 @@ const Index = () => {
         className="mb-4 flex w-full gap-1 lg:px-0"
         style={{ borderBottom: '1px solid var(--color-border)' }}
       >
-        {(['map', 'jesus', 'activities'] as const).map((tab) => (
+        {(['map', 'heatmap', 'jesus', 'activities'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -441,14 +441,20 @@ const Index = () => {
           >
             {tab === 'map'
               ? 'Profile'
-              : tab === 'jesus'
-                ? 'Jesus'
-                : 'Activities'}
+              : tab === 'heatmap'
+                ? 'Heatmap'
+                : tab === 'jesus'
+                  ? 'Jesus'
+                  : 'Activities'}
           </button>
         ))}
       </div>
 
-      {activeTab === 'jesus' ? (
+      {activeTab === 'heatmap' ? (
+        <div className="w-full px-4">
+          <SVGStat />
+        </div>
+      ) : activeTab === 'jesus' ? (
         <div className="w-full px-4">
           <Suspense
             fallback={
@@ -509,16 +515,12 @@ const Index = () => {
               thisYear={year}
               animationTrigger={animationTrigger}
             />
-            {year === 'Total' ? (
-              <SVGStat />
-            ) : (
-              <RunTable
-                runs={runs}
-                locateActivity={locateActivity}
-                runIndex={runIndex}
-                setRunIndex={setRunIndex}
-              />
-            )}
+            <RunTable
+              runs={runs}
+              locateActivity={locateActivity}
+              runIndex={runIndex}
+              setRunIndex={setRunIndex}
+            />
           </div>
         </div>
       )}
