@@ -218,3 +218,14 @@ hr {
     overflow-x: hidden;
   }
 }
+
+/* Recharts makes the chart surface focusable for keyboard accessibility,
+   which draws the browser's focus ring (a blue rectangle on iOS Safari)
+   whenever the chart is tapped. Suppress it, plus the tap highlight. */
+.recharts-wrapper,
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus,
+.recharts-surface {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
