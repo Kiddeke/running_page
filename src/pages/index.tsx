@@ -17,6 +17,7 @@ import RunTable from '@/components/RunTable';
 import SVGStat from '@/components/SVGStat';
 import YearsStat from '@/components/YearsStat';
 import MassCalendar from '@/components/MassCalendar';
+import GoalsCard from '@/components/GoalsCard';
 
 const FaithTab = lazy(() => import('@/components/FaithTab'));
 const ActivitiesTab = lazy(() => import('@/components/ActivitiesTab'));
@@ -517,6 +518,7 @@ const Index = () => {
           <Suspense fallback={null}>
             <WeeklyChart />
           </Suspense>
+          <GoalsCard />
           <div className="mt-6">
             {(viewState.zoom ?? 0) <= 3 && IS_CHINESE ? (
               <LocationStat
