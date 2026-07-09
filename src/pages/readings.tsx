@@ -31,6 +31,13 @@ interface MassData {
   date: string;
   sections: Section[];
   copyright?: string;
+  // Present on days with an optional memorial, where Universalis provides
+  // a second set of readings (keys suffixed "_Optional") alongside the
+  // primary weekday ones. Labels are derived by splitting the combined
+  // longname on " or " (e.g. "Thursday ... or Saint Augustine Zhao Rong").
+  altSections?: Section[];
+  primaryLabel?: string;
+  altLabel?: string;
 }
 
 // Load Universalis via JSONP — fixed callback name "universalisCallback"
@@ -83,12 +90,11 @@ const loadUniversalisJsonp = (
 // Universalis's callback prepends "Universalis_" only when building DOM
 // element ids — the raw JSON keys themselves are unprefixed (day, Mass_R1,
 // Mass_G, copyright, etc.), per Universalis's own sample callback code.
-const parseUniversalisFlat = (data: any, dateStr: string): MassData => {
-  const longname: string = data['day'] ?? '';
+const buildSections = (data: any, suffix: string): Section[] => {
   const keys = ['R1', 'Ps', 'R2', 'GA', 'G'];
   const sections: Section[] = [];
   for (const k of keys) {
-    const entry = data[`Mass_${k}`];
+    const entry = data[`Mass_${k}${suffix}`];
     const text = entry?.text ?? '';
     if (!text) continue;
     sections.push({
@@ -97,8 +103,32 @@ const parseUniversalisFlat = (data: any, dateStr: string): MassData => {
       body: text,
     });
   }
+  return sections;
+};
+
+const parseUniversalisFlat = (data: any, dateStr: string): MassData => {
+  const longname: string = data['day'] ?? '';
+  const sections = buildSections(data, '');
+  const altSections = buildSections(data, '_Optional');
   const copyright: string | undefined = data['copyright']?.text;
-  return { longname, date: dateStr, sections, copyright };
+
+  let primaryLabel: string | undefined;
+  let altLabel: string | undefined;
+  if (altSections.length > 0 && longname.includes(' or ')) {
+    const idx = longname.indexOf(' or ');
+    primaryLabel = longname.slice(0, idx);
+    altLabel = longname.slice(idx + 4);
+  }
+
+  return {
+    longname,
+    date: dateStr,
+    sections,
+    copyright,
+    altSections: altSections.length > 0 ? altSections : undefined,
+    primaryLabel,
+    altLabel,
+  };
 };
 
 const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
@@ -171,6 +201,7 @@ const ReadingsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAlt, setShowAlt] = useState(false);
 
   const safeDate =
     date && /^\d{4}-\d{2}-\d{2}$/.test(date)
@@ -181,20 +212,32 @@ const ReadingsPage = () => {
         })();
 
   useEffect(() => {
+    // Guard against a stale/late-arriving fetch (e.g. quickly navigating
+    // between dates, or React re-invoking effects in dev) overwriting the
+    // state for whichever date is actually current.
+    let cancelled = false;
     setLoading(true);
     setError(null);
     setErrorDetail(null);
     setData(null);
+    setShowAlt(false);
     fetchMassReadings(safeDate)
       .then((d) => {
+        if (cancelled) return;
         if (d.sections.length === 0) throw new Error('No readings returned');
         setData(d);
       })
       .catch((e) => {
+        if (cancelled) return;
         setError('readings-unavailable');
         setErrorDetail(e instanceof Error ? e.message : String(e));
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [safeDate]);
 
   const usccbUrl = `https://bible.usccb.org/bible/readings/${safeDate.slice(5, 7)}${safeDate.slice(8, 10)}${safeDate.slice(2, 4)}.cfm`;
@@ -295,7 +338,12 @@ const ReadingsPage = () => {
                 className="mb-3 text-3xl leading-tight font-bold"
                 style={{ color: 'var(--color-text)' }}
               >
-                {stripHtml(data.longname)}
+                {stripHtml(
+                  data.altSections
+                    ? ((showAlt ? data.altLabel : data.primaryLabel) ??
+                        data.longname)
+                    : data.longname
+                )}
               </h1>
               <p
                 className="text-xs font-semibold tracking-widest"
@@ -305,9 +353,51 @@ const ReadingsPage = () => {
               </p>
             </div>
 
+            {/* Optional-memorial toggle */}
+            {data.altSections && (
+              <div className="mb-6 flex gap-2">
+                <button
+                  onClick={() => setShowAlt(false)}
+                  className="rounded-full px-4 py-2 text-sm font-semibold"
+                  style={
+                    !showAlt
+                      ? {
+                          backgroundColor: 'var(--color-brand)',
+                          color: 'var(--color-background)',
+                        }
+                      : {
+                          backgroundColor: 'var(--color-card-2)',
+                          color: 'var(--color-text-muted)',
+                          border: '1px solid var(--color-border)',
+                        }
+                  }
+                >
+                  {stripHtml(data.primaryLabel ?? 'Weekday')}
+                </button>
+                <button
+                  onClick={() => setShowAlt(true)}
+                  className="rounded-full px-4 py-2 text-sm font-semibold"
+                  style={
+                    showAlt
+                      ? {
+                          backgroundColor: 'var(--color-brand)',
+                          color: 'var(--color-background)',
+                        }
+                      : {
+                          backgroundColor: 'var(--color-card-2)',
+                          color: 'var(--color-text-muted)',
+                          border: '1px solid var(--color-border)',
+                        }
+                  }
+                >
+                  {stripHtml(data.altLabel ?? 'Memorial')}
+                </button>
+              </div>
+            )}
+
             {/* Reading sections */}
             <div className="space-y-5">
-              {data.sections.map((s, i) => (
+              {(showAlt ? data.altSections! : data.sections).map((s, i) => (
                 <div
                   key={i}
                   className="rounded-2xl p-6"
