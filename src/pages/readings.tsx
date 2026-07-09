@@ -178,15 +178,23 @@ const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
   throw new Error(trace.join(' | ') || 'All attempts failed');
 };
 
-// Strip HTML tags for plain-text rendering, or keep for innerHTML
-const stripHtml = (html: string): string =>
-  html
-    .replace(/<[^>]*>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#8203;/g, '')
+// Strip HTML tags for plain-text rendering. Block-level boundaries are
+// turned into spaces first so words from adjacent <div>/<p> lines (as
+// Universalis wraps each verse line) don't get mashed together. Entities
+// (named and numeric, e.g. &#x2010; &#160;) are decoded via the DOM rather
+// than a hardcoded list, since Universalis's text uses many of them.
+const stripHtml = (html: string): string => {
+  const spaced = html
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/(div|p|li)>/gi, ' ')
+    .replace(/<[^>]*>/g, '');
+  const decoder = document.createElement('textarea');
+  decoder.innerHTML = spaced;
+  return decoder.value
+    .replace(/[\u200B\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
     .trim();
+};
 
 const SkeletonCard = () => (
   <div
