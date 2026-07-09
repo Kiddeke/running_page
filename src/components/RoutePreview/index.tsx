@@ -2,7 +2,6 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import { pathForRun } from '@/utils/geoUtils';
 import type { Activity } from '@/utils/utils';
 import { NO_ROUTE_DATA, INVALID_ROUTE_DATA, INDOOR_COLOR } from '@/utils/const';
-import { useTheme } from '@/hooks/useTheme';
 import styles from './style.module.css';
 
 interface RoutePreviewProps {
@@ -18,7 +17,35 @@ const CANVAS_PADDING = 16;
 const TILE_SIZE = 256;
 const MIN_ZOOM = 10;
 const MAX_ZOOM = 17;
-const DRAW_DURATION_MS = 2800;
+const BASE_DRAW_DURATION_MS = 2800;
+// 50% slower overall, per user request.
+const DRAW_DURATION_MS = Math.round(BASE_DRAW_DURATION_MS * 1.5);
+// Slow, explicit ease-in/ease-out: the first/last 500ms of the draw ramp
+// smoothly up to/down from full speed, instead of the whole thing easing.
+const RAMP_MS = 500;
+
+const smoothstepIntegral = (x: number) => x ** 3 - x ** 4 / 2;
+
+// Trapezoidal velocity profile: smoothstep ease-in over the first RAMP_MS,
+// constant speed through the middle, smoothstep ease-out over the final
+// RAMP_MS. The line and dot both read their position off this single
+// progress value every frame, so they can't drift apart the way two
+// independently-timed CSS/SMIL animations used to.
+const trapezoidProgress = (
+  elapsedMs: number,
+  totalMs: number,
+  rampMs: number
+): number => {
+  const t = Math.min(Math.max(elapsedMs, 0), totalMs);
+  const v = 1 / (totalMs - rampMs); // plateau speed, in progress/ms
+  if (t <= rampMs) {
+    return v * rampMs * smoothstepIntegral(t / rampMs);
+  }
+  if (t >= totalMs - rampMs) {
+    return 1 - v * rampMs * smoothstepIntegral((totalMs - t) / rampMs);
+  }
+  return v * rampMs * 0.5 + v * (t - rampMs);
+};
 
 // Web Mercator projection: lng/lat -> pixel coordinates at a given zoom level.
 // Using the same real-world projection for both the tile mosaic and the route
@@ -60,41 +87,79 @@ const chooseZoom = (
 const TILE_SUBDOMAINS = 'abcd';
 const tileSubdomain = (x: number, y: number) => TILE_SUBDOMAINS[(x + y) % 4];
 
-// Draws a route path once, animating the stroke from hidden to fully drawn,
-// then leaves it settled in its final, fully-drawn state.
-const AnimatedRoutePath: React.FC<{
+// Draws a route path once, animating the stroke from hidden to fully drawn
+// while a dot travels along the same path, then leaves both settled in
+// their final state. The path's stroke-dashoffset and the dot's position
+// are both computed from the same progress value on every frame (instead
+// of a CSS transition driving the line and a separate SMIL animateMotion
+// driving the dot), so the dot can never lag behind or run ahead of the line.
+const AnimatedRoute: React.FC<{
   d: string;
   color: string;
   indoor: boolean;
 }> = ({ d, color, indoor }) => {
   const pathRef = useRef<SVGPathElement>(null);
+  const dotRef = useRef<SVGCircleElement>(null);
 
   useLayoutEffect(() => {
-    const el = pathRef.current;
-    if (!el || indoor) return;
-    const length = el.getTotalLength();
-    el.style.transition = 'none';
-    el.style.strokeDasharray = `${length}`;
-    el.style.strokeDashoffset = `${length}`;
-    const raf = requestAnimationFrame(() => {
-      el.style.transition = `stroke-dashoffset ${DRAW_DURATION_MS}ms ease-out`;
-      el.style.strokeDashoffset = '0';
+    const pathEl = pathRef.current;
+    if (!pathEl || indoor) return;
+
+    const length = pathEl.getTotalLength();
+    pathEl.style.strokeDasharray = `${length}`;
+    pathEl.style.strokeDashoffset = `${length}`;
+
+    const dotEl = dotRef.current;
+    if (dotEl) {
+      const start = pathEl.getPointAtLength(0);
+      dotEl.setAttribute('cx', `${start.x}`);
+      dotEl.setAttribute('cy', `${start.y}`);
+    }
+
+    let startTime: number | null = null;
+    let rafId = requestAnimationFrame(function tick(now) {
+      if (startTime === null) startTime = now;
+      const elapsed = now - startTime;
+      const progress = trapezoidProgress(elapsed, DRAW_DURATION_MS, RAMP_MS);
+
+      pathEl.style.strokeDashoffset = `${length * (1 - progress)}`;
+      if (dotEl) {
+        const point = pathEl.getPointAtLength(progress * length);
+        dotEl.setAttribute('cx', `${point.x}`);
+        dotEl.setAttribute('cy', `${point.y}`);
+      }
+
+      if (elapsed < DRAW_DURATION_MS) {
+        rafId = requestAnimationFrame(tick);
+      }
     });
-    return () => cancelAnimationFrame(raf);
+
+    return () => cancelAnimationFrame(rafId);
   }, [d, indoor]);
 
   return (
-    <path
-      ref={pathRef}
-      d={d}
-      fill="none"
-      stroke={color}
-      strokeWidth={2.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      opacity={indoor ? 0.6 : 0.95}
-      strokeDasharray={indoor ? '4,3' : undefined}
-    />
+    <>
+      <path
+        ref={pathRef}
+        d={d}
+        fill="none"
+        stroke={color}
+        strokeWidth={3.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={indoor ? 0.6 : 0.95}
+        strokeDasharray={indoor ? '4,3' : undefined}
+      />
+      {!indoor && (
+        <circle
+          r="5"
+          fill={color}
+          stroke="white"
+          strokeWidth="1.5"
+          ref={dotRef}
+        />
+      )}
+    </>
   );
 };
 
@@ -123,7 +188,6 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
   className,
   height = DEFAULT_HEIGHT,
 }) => {
-  const { theme } = useTheme();
   const [containerRef, width] = useContainerWidth(FALLBACK_WIDTH);
   const activitiesWithRoutes = activities.filter(
     (activity) => activity.summary_polyline
@@ -232,7 +296,10 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
     }
   }
 
-  const tileStyle = theme === 'light' ? 'light_all' : 'dark_all';
+  // Always use Carto's colorful Voyager style for the preview background,
+  // regardless of app theme — the muted light_all/dark_all styles read as
+  // plain gray in a card this small.
+  const tileStyle = 'rastertiles/voyager';
 
   return (
     <div className={`${styles.routePreview} ${className || ''}`}>
@@ -274,7 +341,7 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
 
             return (
               <g key={routeKey}>
-                <AnimatedRoutePath
+                <AnimatedRoute
                   d={pathString}
                   color={route.color}
                   indoor={route.indoor}
@@ -282,34 +349,18 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
                 <circle
                   cx={startX}
                   cy={startY}
-                  r="3"
+                  r="3.5"
                   fill="#2ecc71"
                   stroke="white"
-                  strokeWidth="1"
+                  strokeWidth="1.2"
                 />
-                {!route.indoor && (
-                  <circle
-                    r="3.5"
-                    fill={route.color}
-                    stroke="white"
-                    strokeWidth="1.2"
-                  >
-                    <animateMotion
-                      dur={`${DRAW_DURATION_MS}ms`}
-                      begin="0s"
-                      fill="freeze"
-                      repeatCount="1"
-                      path={pathString}
-                    />
-                  </circle>
-                )}
                 <circle
                   cx={endX}
                   cy={endY}
-                  r="3"
+                  r="3.5"
                   fill="#e74c3c"
                   stroke="white"
-                  strokeWidth="1"
+                  strokeWidth="1.2"
                 />
               </g>
             );
