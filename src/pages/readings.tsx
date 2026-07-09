@@ -30,6 +30,7 @@ interface MassData {
   longname: string;
   date: string;
   sections: Section[];
+  copyright?: string;
 }
 
 const parseUniversalisJson = (json: any, dateStr: string): MassData => {
@@ -82,8 +83,9 @@ const loadUniversalisJsonp = (
   timeoutMs = 10000
 ): Promise<any | null> => {
   const compact = dateStr.replace(/-/g, '');
+  // Empty region = Universalis General Calendar, confirmed valid per
+  // Universalis's own JSONP documentation and sample widget code.
   const urls = [
-    `https://universalis.com/USA/${compact}/jsonpmass.js?callback=universalisCallback`,
     `https://universalis.com/${compact}/jsonpmass.js?callback=universalisCallback`,
   ];
 
@@ -120,30 +122,26 @@ const loadUniversalisJsonp = (
   );
 };
 
-// Parse the flat Universalis JSONP data structure into MassData
+// Parse the flat Universalis JSONP data structure into MassData.
+// Universalis's callback prepends "Universalis_" only when building DOM
+// element ids — the raw JSON keys themselves are unprefixed (day, Mass_R1,
+// Mass_G, copyright, etc.), per Universalis's own sample callback code.
 const parseUniversalisFlat = (data: any, dateStr: string): MassData => {
-  const longname: string = data['Universalis_day'] ?? '';
+  const longname: string = data['day'] ?? '';
   const keys = ['R1', 'Ps', 'R2', 'GA', 'G'];
   const sections: Section[] = [];
   for (const k of keys) {
-    const text =
-      data[`Universalis_Mass_${k}`]?.text ??
-      data[`Universalis_Mass_${k}.text`] ??
-      '';
+    const entry = data[`Mass_${k}`];
+    const text = entry?.text ?? '';
     if (!text) continue;
     sections.push({
-      heading:
-        data[`Universalis_Mass_${k}`]?.heading ??
-        data[`Universalis_Mass_${k}.heading`] ??
-        '',
-      ref:
-        data[`Universalis_Mass_${k}`]?.source ??
-        data[`Universalis_Mass_${k}.source`] ??
-        '',
+      heading: entry?.heading ?? '',
+      ref: entry?.source ?? '',
       body: text,
     });
   }
-  return { longname, date: dateStr, sections };
+  const copyright: string | undefined = data['copyright']?.text;
+  return { longname, date: dateStr, sections, copyright };
 };
 
 // Base path for same-origin static files (respects /running_page/ prefix on GH Pages)
@@ -352,7 +350,7 @@ const ReadingsPage = () => {
                 className="mb-3 text-3xl leading-tight font-bold"
                 style={{ color: 'var(--color-text)' }}
               >
-                {data.longname}
+                {stripHtml(data.longname)}
               </h1>
               <p
                 className="text-xs font-semibold tracking-widest"
@@ -415,6 +413,26 @@ const ReadingsPage = () => {
                 </div>
               ))}
             </div>
+
+            {data.copyright && (
+              <>
+                <p
+                  className="mt-6 text-xs leading-relaxed"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  {stripHtml(data.copyright)}
+                </p>
+                <a
+                  href="https://universalis.com/mass.htm"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-block text-xs"
+                  style={{ color: 'var(--color-brand)' }}
+                >
+                  Readings via Universalis →
+                </a>
+              </>
+            )}
           </>
         )}
       </div>
