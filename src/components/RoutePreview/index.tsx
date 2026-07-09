@@ -18,6 +18,11 @@ const CANVAS_PADDING = 16;
 const TILE_SIZE = 256;
 const MIN_ZOOM = 10;
 const MAX_ZOOM = 17;
+// Stadia Maps API key for the dark-mode tile style (Alidade Smooth Dark),
+// used instead of Carto's dark_all because that read as near-black. Free
+// tier, restricted to this site's domain in the Stadia dashboard.
+// https://client.stadiamaps.com/signup/
+const STADIA_API_KEY = '02229050-fa45-4f77-8cef-3eb5213f0a98';
 const BASE_DRAW_DURATION_MS = 2800;
 // 50% slower overall, per user request.
 const DRAW_DURATION_MS = Math.round(BASE_DRAW_DURATION_MS * 1.5);
@@ -87,6 +92,20 @@ const chooseZoom = (
 
 const TILE_SUBDOMAINS = 'abcd';
 const tileSubdomain = (x: number, y: number) => TILE_SUBDOMAINS[(x + y) % 4];
+
+// Light mode: Carto's colorful, free-tier Voyager raster tiles. Dark mode:
+// Stadia's Alidade Smooth Dark, a much softer blue-gray than Carto's
+// near-black dark_all. Two different tile providers, so the whole URL is
+// built here rather than just swapping a style name.
+const tileUrl = (
+  theme: 'light' | 'dark',
+  x: number,
+  y: number,
+  zoom: number
+): string =>
+  theme === 'light'
+    ? `https://${tileSubdomain(x, y)}.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${x}/${y}.png`
+    : `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/${zoom}/${x}/${y}.png?api_key=${STADIA_API_KEY}`;
 
 type Point = [number, number];
 
@@ -352,10 +371,6 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
     }
   }
 
-  // Colorful Voyager for light mode; Carto's Dark Matter for dark mode,
-  // which is a dark slate rather than literal black.
-  const tileStyle = theme === 'light' ? 'rastertiles/voyager' : 'dark_all';
-
   return (
     <div className={`${styles.routePreview} ${className || ''}`}>
       <div
@@ -366,7 +381,12 @@ const RoutePreview: React.FC<RoutePreviewProps> = ({
         {tiles.map((tile) => (
           <img
             key={tile.key}
-            src={`https://${tileSubdomain(tile.x, tile.y)}.basemaps.cartocdn.com/${tileStyle}/${zoom}/${tile.x}/${tile.y}.png`}
+            src={tileUrl(
+              theme === 'light' ? 'light' : 'dark',
+              tile.x,
+              tile.y,
+              zoom
+            )}
             width={TILE_SIZE}
             height={TILE_SIZE}
             className={styles.mapTile}
