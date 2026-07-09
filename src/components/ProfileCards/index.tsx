@@ -1,6 +1,13 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import useActivities from '@/hooks/useActivities';
-import { M_TO_DIST, DIST_UNIT } from '@/utils/utils';
+import {
+  M_TO_DIST,
+  DIST_UNIT,
+  M_TO_ELEV,
+  ELEV_UNIT,
+  formatPace,
+  Activity,
+} from '@/utils/utils';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -84,6 +91,53 @@ const statTile = {
   border: '1px solid var(--color-border)',
 };
 
+const MetricCard = ({
+  label,
+  value,
+  unit,
+  sub,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  sub?: string;
+}) => (
+  <div
+    className="rounded-xl p-4"
+    style={{
+      backgroundColor: 'var(--color-card)',
+      border: '1px solid var(--color-border)',
+    }}
+  >
+    <p
+      className="mb-1 text-xs font-semibold tracking-widest uppercase"
+      style={{ color: 'var(--color-text-muted)' }}
+    >
+      {label}
+    </p>
+    <p
+      className="text-xl leading-tight font-bold"
+      style={{ color: 'var(--color-text)' }}
+    >
+      {value}
+      {unit && (
+        <span
+          className="text-xs font-normal"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          {' '}
+          {unit}
+        </span>
+      )}
+    </p>
+    {sub && (
+      <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+        {sub}
+      </p>
+    )}
+  </div>
+);
+
 const ProfileCards = () => {
   const { activities } = useActivities();
   const [modal, setModal] = useState<'streaks' | 'log' | null>(null);
@@ -163,6 +217,50 @@ const ProfileCards = () => {
     };
   }, [activities]);
 
+  const metrics = useMemo(() => {
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+    const yearKey = `${now.getFullYear()}`;
+    let monthDist = 0;
+    let monthRuns = 0;
+    let yearDist = 0;
+    let yearRuns = 0;
+    let yearElev = 0;
+    let longest: Activity | null = null;
+    let fastest: Activity | null = null;
+    activities.forEach((a) => {
+      const dist = a.distance / M_TO_DIST;
+      if (a.start_date_local.slice(0, 7) === monthKey) {
+        monthDist += dist;
+        monthRuns += 1;
+      }
+      if (a.start_date_local.slice(0, 4) === yearKey) {
+        yearDist += dist;
+        yearRuns += 1;
+        yearElev += (a.elevation_gain ?? 0) * M_TO_ELEV;
+      }
+      if (!longest || a.distance > longest.distance) longest = a;
+      // Ignore sub-unit-distance runs for best pace — short GPS blips
+      // produce absurd paces.
+      if (
+        dist >= 1 &&
+        a.average_speed > 0 &&
+        (!fastest || a.average_speed > fastest.average_speed)
+      ) {
+        fastest = a;
+      }
+    });
+    return {
+      monthDist,
+      monthRuns,
+      yearDist,
+      yearRuns,
+      yearElev,
+      longest: longest as Activity | null,
+      fastest: fastest as Activity | null,
+    };
+  }, [activities]);
+
   const last7Total = stats.last7.reduce((sum, d) => sum + d.miles, 0);
   const last7Max = Math.max(...stats.last7.map((d) => d.miles), 0);
   const last14Max = Math.max(...stats.last14.map((d) => d.miles), 0);
@@ -172,6 +270,14 @@ const ProfileCards = () => {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
+    });
+
+  // All-time records need the year to be meaningful
+  const recordDate = (ds: string) =>
+    parseLocalDate(ds).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
     });
 
   return (
@@ -256,6 +362,44 @@ const ProfileCards = () => {
             {last7Total.toFixed(1)} {DIST_UNIT} / 7d
           </p>
         </button>
+      </div>
+
+      {/* Metric cards */}
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <MetricCard
+          label="This Month"
+          value={metrics.monthDist.toFixed(1)}
+          unit={DIST_UNIT}
+          sub={`${metrics.monthRuns} run${metrics.monthRuns === 1 ? '' : 's'}`}
+        />
+        <MetricCard
+          label="This Year"
+          value={metrics.yearDist.toFixed(0)}
+          unit={DIST_UNIT}
+          sub={`${metrics.yearRuns} runs · ${Math.round(metrics.yearElev)} ${ELEV_UNIT} elev`}
+        />
+        <MetricCard
+          label="Longest Run"
+          value={
+            metrics.longest
+              ? (metrics.longest.distance / M_TO_DIST).toFixed(1)
+              : '—'
+          }
+          unit={DIST_UNIT}
+          sub={
+            metrics.longest ? recordDate(metrics.longest.start_date_local) : ''
+          }
+        />
+        <MetricCard
+          label="Best Pace"
+          value={
+            metrics.fastest ? formatPace(metrics.fastest.average_speed) : '—'
+          }
+          unit={`/${DIST_UNIT}`}
+          sub={
+            metrics.fastest ? recordDate(metrics.fastest.start_date_local) : ''
+          }
+        />
       </div>
 
       {modal === 'streaks' && (

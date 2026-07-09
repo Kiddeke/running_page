@@ -423,10 +423,11 @@ const Index = () => {
 
       {/* Tab bar */}
       <div
-        className="scrollbar-none mb-4 flex w-full gap-1 overflow-x-auto lg:px-0"
+        className="scrollbar-none mb-4 flex w-full gap-1 overflow-x-auto overflow-y-hidden lg:px-0"
         style={{
           borderBottom: '1px solid var(--color-border)',
           scrollbarWidth: 'none',
+          touchAction: 'pan-x',
         }}
       >
         {(
@@ -441,9 +442,11 @@ const Index = () => {
                 ? {
                     borderBottom: '2px solid var(--color-brand)',
                     color: 'var(--color-text)',
-                    marginBottom: '-1px',
                   }
-                : { color: 'var(--color-text-muted)' }
+                : {
+                    borderBottom: '2px solid transparent',
+                    color: 'var(--color-text-muted)',
+                  }
             }
           >
             {tab === 'map'
