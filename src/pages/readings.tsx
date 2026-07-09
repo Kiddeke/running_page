@@ -75,8 +75,8 @@ const loadUniversalisJsonp = (
 ): Promise<any | null> => {
   const compact = dateStr.replace(/-/g, '');
   const urls = [
-    `https://universalis.com/US/${compact}/Mass0.js`,
-    `https://universalis.com/US/${compact}/jsonpmass.js`,
+    `https://universalis.com/USA/${compact}/jsonpmass.js?callback=universalisCallback`,
+    `https://universalis.com/${compact}/jsonpmass.js?callback=universalisCallback`,
   ];
 
   const tryUrl = (url: string): Promise<any | null> =>
