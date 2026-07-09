@@ -163,6 +163,16 @@ const stripHtml = (html: string): string => {
     .trim();
 };
 
+// Universalis's Gospel Acclamation citation glues the abbreviated book
+// name straight to the chapter number (e.g. "Ps94:8", "1Jn2:5"), unlike
+// the other readings which use full names with normal spacing ("Hosea
+// 10:1-3"). Insert the missing space in both directions so citations
+// read consistently.
+const formatRef = (ref: string): string =>
+  stripHtml(ref)
+    .replace(/(\d)([A-Za-z])/g, '$1 $2')
+    .replace(/([A-Za-z])(\d)/g, '$1 $2');
+
 const SkeletonCard = () => (
   <div
     className="mb-4 animate-pulse rounded-2xl p-6"
@@ -433,7 +443,7 @@ const ReadingsPage = () => {
                         className="text-sm font-semibold"
                         style={{ color: 'var(--color-text)' }}
                       >
-                        {stripHtml(s.ref)}
+                        {formatRef(s.ref)}
                       </span>
                     </div>
                   )}
