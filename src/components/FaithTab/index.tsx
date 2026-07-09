@@ -1,4 +1,11 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+  type ChangeEvent,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AreaChart,
@@ -60,6 +67,40 @@ const loadActivities = (): FaithActivity[] => {
 
 const saveActivities = (acts: FaithActivity[]) =>
   localStorage.setItem(STORAGE_KEY, JSON.stringify(acts));
+
+// ── Export / import ───────────────────────────────────────────────────────────
+// Activities only live in this browser's localStorage, so logging on one
+// device won't show up on another. Export/import lets you move a backup
+// between them by hand until there's a synced backend.
+
+const isFaithActivity = (v: any): v is FaithActivity =>
+  !!v &&
+  typeof v.id === 'string' &&
+  typeof v.date === 'string' &&
+  FAITH_TYPES.some((t) => t.key === v.type);
+
+const mergeActivities = (
+  existing: FaithActivity[],
+  incoming: unknown[]
+): FaithActivity[] => {
+  const byId = new Map(existing.map((a) => [a.id, a]));
+  incoming.forEach((a) => {
+    if (isFaithActivity(a)) byId.set(a.id, a);
+  });
+  return Array.from(byId.values()).sort((a, b) => b.date.localeCompare(a.date));
+};
+
+const exportActivities = (activities: FaithActivity[]) => {
+  const blob = new Blob([JSON.stringify(activities, null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `faith-log-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -359,6 +400,31 @@ const FaithTab = () => {
     setActivities((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleImportFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setImportError(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        if (!Array.isArray(parsed)) throw new Error('not an array');
+        setActivities((prev) => mergeActivities(prev, parsed));
+      } catch {
+        setImportError(
+          "Couldn't read that file — expected a faith log JSON export."
+        );
+      }
+    };
+    reader.readAsText(file);
+  };
+
   // Build 12-week chart data
   const chartData = useMemo(() => {
     const today = new Date();
@@ -438,14 +504,45 @@ const FaithTab = () => {
           border: '1px solid var(--color-border)',
         }}
       >
-        <p
-          className="mb-3 text-xs font-semibold tracking-widest uppercase"
-          style={{ color: 'var(--color-text-muted)' }}
-        >
-          {selectedWeek
-            ? `Week of ${formatWeekLabel(selectedWeek)}`
-            : 'All Time'}
-        </p>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p
+            className="text-xs font-semibold tracking-widest uppercase"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            {selectedWeek
+              ? `Week of ${formatWeekLabel(selectedWeek)}`
+              : 'All Time'}
+          </p>
+          <div className="flex shrink-0 items-center gap-3">
+            <button
+              onClick={() => exportActivities(activities)}
+              disabled={activities.length === 0}
+              className="text-xs font-semibold disabled:opacity-40"
+              style={{ color: 'var(--color-brand)' }}
+            >
+              Export
+            </button>
+            <button
+              onClick={handleImportClick}
+              className="text-xs font-semibold"
+              style={{ color: 'var(--color-brand)' }}
+            >
+              Import
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json"
+              onChange={handleImportFile}
+              className="hidden"
+            />
+          </div>
+        </div>
+        {importError && (
+          <p className="mb-3 text-xs" style={{ color: TYPE_COLORS.fasting }}>
+            {importError}
+          </p>
+        )}
         <div className="flex flex-wrap gap-3">
           {FAITH_TYPES.map(({ key, label, emoji }) => (
             <div key={key} className="flex items-center gap-1.5">
