@@ -53,15 +53,22 @@ const parseUniversalisJson = (json: any, dateStr: string): MassData => {
 
 const tryFetchJson = async (
   url: string,
+  trace: string[],
   timeoutMs = 6000
 ): Promise<any | null> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      trace.push(`local ${url} -> HTTP ${res.status}`);
+      return null;
+    }
     return await res.json();
-  } catch {
+  } catch (e) {
+    trace.push(
+      `local ${url} -> ${e instanceof Error ? e.message : 'fetch error'}`
+    );
     return null;
   } finally {
     clearTimeout(timer);
@@ -71,6 +78,7 @@ const tryFetchJson = async (
 // Load Universalis via JSONP — fixed callback name "universalisCallback"
 const loadUniversalisJsonp = (
   dateStr: string,
+  trace: string[],
   timeoutMs = 10000
 ): Promise<any | null> => {
   const compact = dateStr.replace(/-/g, '');
@@ -82,21 +90,26 @@ const loadUniversalisJsonp = (
   const tryUrl = (url: string): Promise<any | null> =>
     new Promise((resolve) => {
       let settled = false;
-      const settle = (val: any) => {
+      const settle = (val: any, reason: string) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
         (window as any).universalisCallback = undefined;
         script.remove();
+        trace.push(`${url} -> ${reason}`);
         resolve(val);
       };
 
-      const timer = setTimeout(() => settle(null), timeoutMs);
-      (window as any).universalisCallback = (data: any) => settle(data);
+      const timer = setTimeout(
+        () => settle(null, 'timeout (callback never invoked)'),
+        timeoutMs
+      );
+      (window as any).universalisCallback = (data: any) =>
+        settle(data, 'callback invoked');
 
       const script = document.createElement('script');
       script.src = url;
-      script.onerror = () => settle(null);
+      script.onerror = () => settle(null, 'script load error');
       document.head.appendChild(script);
     });
 
@@ -138,27 +151,33 @@ const BASE = import.meta.env.BASE_URL?.replace(/\/$/, '') ?? '';
 
 const fetchMassReadings = async (dateStr: string): Promise<MassData> => {
   const compact = dateStr.replace(/-/g, '');
+  const trace: string[] = [];
 
   // 1. Same-origin static file generated at build time — fastest, no CORS
-  const localJson = await tryFetchJson(`${BASE}/readings/${compact}.json`);
+  const localJson = await tryFetchJson(
+    `${BASE}/readings/${compact}.json`,
+    trace
+  );
   if (localJson) {
     // Try flat structure first, fall back to sections array
     const flat = parseUniversalisFlat(localJson, dateStr);
     if (flat.sections.length > 0) return flat;
     const nested = parseUniversalisJson(localJson, dateStr);
     if (nested.sections.length > 0) return nested;
+    trace.push('local json -> parsed but 0 sections');
   }
 
   // 2. Universalis JSONP — bypasses CORS via <script> tag, fixed callback
-  const jsonpData = await loadUniversalisJsonp(dateStr);
+  const jsonpData = await loadUniversalisJsonp(dateStr, trace);
   if (jsonpData) {
     const flat = parseUniversalisFlat(jsonpData, dateStr);
     if (flat.sections.length > 0) return flat;
     const nested = parseUniversalisJson(jsonpData, dateStr);
     if (nested.sections.length > 0) return nested;
+    trace.push('jsonp -> parsed but 0 sections');
   }
 
-  throw new Error('All attempts failed');
+  throw new Error(trace.join(' | ') || 'All attempts failed');
 };
 
 // Strip HTML tags for plain-text rendering, or keep for innerHTML
@@ -207,6 +226,7 @@ const ReadingsPage = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<MassData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const safeDate =
@@ -220,13 +240,17 @@ const ReadingsPage = () => {
   useEffect(() => {
     setLoading(true);
     setError(null);
+    setErrorDetail(null);
     setData(null);
     fetchMassReadings(safeDate)
       .then((d) => {
         if (d.sections.length === 0) throw new Error('No readings returned');
         setData(d);
       })
-      .catch(() => setError('readings-unavailable'))
+      .catch((e) => {
+        setError('readings-unavailable');
+        setErrorDetail(e instanceof Error ? e.message : String(e));
+      })
       .finally(() => setLoading(false));
   }, [safeDate]);
 
@@ -309,6 +333,14 @@ const ReadingsPage = () => {
             >
               View on USCCB →
             </a>
+            {errorDetail && (
+              <p
+                className="mt-6 font-mono text-xs break-words whitespace-pre-wrap"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                {errorDetail}
+              </p>
+            )}
           </div>
         )}
 
