@@ -40,17 +40,28 @@ interface MassData {
   altLabel?: string;
 }
 
-// Load Universalis via JSONP — fixed callback name "universalisCallback"
+let jsonpCallbackSeq = 0;
+
+// Load Universalis via JSONP. Each call gets its own uniquely-named
+// callback (instead of a single shared "universalisCallback") so that two
+// overlapping requests — e.g. navigating from one reading date to another
+// before the first one's ~10s timeout window has resolved — can't clobber
+// each other. With a shared name, a late-arriving response for the OLD
+// date would fire whatever callback is currently installed (the NEW
+// date's), handing that page another day's content under its own date
+// header — which is exactly what produced identical readings across
+// several different dates.
 const loadUniversalisJsonp = (
   dateStr: string,
   trace: string[],
   timeoutMs = 10000
 ): Promise<any | null> => {
   const compact = dateStr.replace(/-/g, '');
+  const callbackName = `universalisCallback_${compact}_${Date.now()}_${jsonpCallbackSeq++}`;
   // Empty region = Universalis General Calendar, confirmed valid per
   // Universalis's own JSONP documentation and sample widget code.
   const urls = [
-    `https://universalis.com/${compact}/jsonpmass.js?callback=universalisCallback`,
+    `https://universalis.com/${compact}/jsonpmass.js?callback=${callbackName}`,
   ];
 
   const tryUrl = (url: string): Promise<any | null> =>
@@ -60,7 +71,7 @@ const loadUniversalisJsonp = (
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        (window as any).universalisCallback = undefined;
+        delete (window as any)[callbackName];
         script.remove();
         trace.push(`${url} -> ${reason}`);
         resolve(val);
@@ -70,7 +81,7 @@ const loadUniversalisJsonp = (
         () => settle(null, 'timeout (callback never invoked)'),
         timeoutMs
       );
-      (window as any).universalisCallback = (data: any) =>
+      (window as any)[callbackName] = (data: any) =>
         settle(data, 'callback invoked');
 
       const script = document.createElement('script');
