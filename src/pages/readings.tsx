@@ -54,7 +54,12 @@ let jsonpCallbackSeq = 0;
 const loadUniversalisJsonp = (
   dateStr: string,
   trace: string[],
-  timeoutMs = 10000
+  // Dates outside Universalis's free window never call back at all, so
+  // this is purely how long that dead-end wait lasts before falling back
+  // to the "unavailable" screen. Shorter than before now that the
+  // calendar itself avoids offering out-of-window dates in the first
+  // place; this only matters for stale links/bookmarks.
+  timeoutMs = 6000
 ): Promise<any | null> => {
   const compact = dateStr.replace(/-/g, '');
   const callbackName = `universalisCallback_${compact}_${Date.now()}_${jsonpCallbackSeq++}`;

@@ -16,12 +16,15 @@ const MassCalendar = () => {
   today.setHours(0, 0, 0, 0);
   const todayStr = toLocalDateStr(today);
 
-  // Universalis's free JSONP access runs from the previous Sunday through
-  // the Saturday after the next Sunday — dates outside that window return
-  // no data at all (the fetch just times out), so the calendar must not
-  // offer days it can't actually load.
+  // Universalis's free JSONP access is a rolling window relative to today,
+  // not calendar-week-aligned as originally assumed here — confirmed by
+  // testing on 2026-07-11 (Saturday), where Jul 5-7 (the previous Sunday
+  // through Tuesday, which the old "previous Sunday" math still offered)
+  // had no data, while Jul 8 (today - 3) onward worked. Dates outside the
+  // real window return no data at all (the fetch just times out), so the
+  // calendar must not offer days it can't actually load.
   const start = new Date(today);
-  start.setDate(today.getDate() - today.getDay());
+  start.setDate(today.getDate() - 3);
 
   const end = new Date(start);
   end.setDate(start.getDate() + 13);
