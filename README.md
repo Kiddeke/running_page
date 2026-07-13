@@ -23,6 +23,39 @@
    - To show the 'Elevation Gain' column, modify `SHOW_ELEVATION_GAIN` in `src/utils/const.ts`
    - note: `Elevation Gain` may be inaccurate. You can use Strava's "Correct Elevation" or Garmin's "Elev Corrections" feature for more precise data.
 6. This project now uses MapCN (free) by default. If you choose to use Mapbox, please get your own token.  Do not use the project maintainer's token - check this [issue](https://github.com/yihong0618/running_page/issues/643) and [issue #1055](https://github.com/yihong0618/running_page/issues/1055)
+7. The Faith tab now syncs through Supabase instead of browser localStorage, and requires signing in — see [Faith Tab: Supabase Setup](#faith-tab-supabase-setup) below. Every other page still works with no setup.
+
+## Faith Tab: Supabase Setup
+
+Only needed for the Faith tab — the rest of the site works exactly as
+before. This uses the same Supabase project as the
+[`running-faith-mobile`](https://github.com/Kiddeke/pommel) Expo app, so
+logging a Mass or a prayer on either the web dashboard or the phone shows up
+on both.
+
+1. Create a free account at [supabase.com](https://supabase.com) and create
+   a new project (skip this if you already set one up for the mobile app —
+   reuse the same project).
+2. Open **SQL Editor** in the project dashboard, paste the contents of
+   [`supabase/schema.sql`](./supabase/schema.sql), and run it. Safe to run
+   once and forget; skip if already run for the mobile app.
+3. Open **Project Settings > API** and copy the **Project URL** and the
+   **anon public key**.
+4. Copy `.env.example` to `.env.local` and fill in those two values:
+   ```bash
+   cp .env.example .env.local
+   ```
+5. Restart the dev server (`pnpm run develop`) if it was already running —
+   env vars are only read at startup.
+6. Open the Faith tab and sign in. If you already created an account from
+   the mobile app, sign in with those same credentials here instead of
+   creating a new one — using different accounts means seeing different
+   (empty) data on each app.
+
+`.env.local` is gitignored — never commit real Supabase credentials. The
+anon key is safe to ship in client code by Supabase's own design (row-level
+security prevents it from exposing another user's data), but there's no
+reason to publish it either.
 
 <p align="center">
   <img width="150" src="https://raw.githubusercontent.com/shaonianche/gallery/master/running_page/running_page_logo.png" />

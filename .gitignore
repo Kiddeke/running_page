@@ -26,3 +26,5 @@ route.png
 route.svg
 
 .env
+.env.local
+.env.*.local
