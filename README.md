@@ -24,6 +24,7 @@
    - note: `Elevation Gain` may be inaccurate. You can use Strava's "Correct Elevation" or Garmin's "Elev Corrections" feature for more precise data.
 6. This project now uses MapCN (free) by default. If you choose to use Mapbox, please get your own token.  Do not use the project maintainer's token - check this [issue](https://github.com/yihong0618/running_page/issues/643) and [issue #1055](https://github.com/yihong0618/running_page/issues/1055)
 7. The Faith tab now syncs through Supabase instead of browser localStorage, and requires signing in — see [Faith Tab: Supabase Setup](#faith-tab-supabase-setup) below. Every other page still works with no setup.
+8. This repo's scheduled Strava sync now optionally pushes activities to Supabase too, powering the `running-faith-mobile` app's live running data — see [Live Strava Sync (Mobile App)](#live-strava-sync-mobile-app). Opt-in via two GitHub Actions secrets; skip it if you don't use the mobile app.
 
 ## Faith Tab: Supabase Setup
 
@@ -56,6 +57,37 @@ on both.
 anon key is safe to ship in client code by Supabase's own design (row-level
 security prevents it from exposing another user's data), but there's no
 reason to publish it either.
+
+## Live Strava Sync (Mobile App)
+
+Only needed if you use the `running-faith-mobile` app — this repo's web
+dashboard doesn't read from Supabase for running data, only the mobile app
+does. This repo's *existing* scheduled Strava sync
+(`.github/workflows/run_data_sync.yml`, already running twice daily) gained
+one more step that pushes `src/static/activities.json` into a public,
+read-only Supabase `activities` table once that file is generated.
+
+**No on-device Strava OAuth was added anywhere** — the mobile app just
+reads this table. This repo's sync already handles Strava OAuth token
+refresh correctly, so there was no reason to build a second, riskier OAuth
+flow on the phone (which can't safely hold a Strava client secret anyway).
+
+Setup:
+1. Run `supabase/schema.sql` if you haven't already for the Faith tab (the
+   `activities` table portion is new; `create table if not exists` makes
+   re-running it harmless).
+2. In this repo's **Settings > Secrets and variables > Actions**, add two
+   new repository secrets:
+   - `SUPABASE_URL` — your project URL (same value as `VITE_SUPABASE_URL`)
+   - `SUPABASE_SERVICE_ROLE_KEY` — from **Project Settings > API** in the
+     Supabase dashboard. **This is not the anon key** — it bypasses
+     row-level security entirely, so it must only ever exist as a GitHub
+     Actions secret here. Never put it in `.env`/`.env.local`, never log
+     it, never use it in either app's client code.
+3. The next scheduled sync run (or a manual `workflow_dispatch` run of
+   "Run Data Sync") pushes your activities to Supabase. The step is a
+   no-op and does nothing until both secrets are set, so this is safe to
+   merge without opting in immediately.
 
 <p align="center">
   <img width="150" src="https://raw.githubusercontent.com/shaonianche/gallery/master/running_page/running_page_logo.png" />

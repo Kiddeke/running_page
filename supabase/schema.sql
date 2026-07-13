@@ -27,3 +27,37 @@ create policy "Users can manage their own faith activities"
 
 create index if not exists faith_activities_user_date_idx
   on faith_activities (user_id, date desc);
+
+-- Running activities, synced from this repo's existing scheduled Strava
+-- sync (see run_page/sync_activities_to_supabase.py and its step in
+-- .github/workflows/run_data_sync.yml) — not written by either app
+-- directly. id is the real Strava/running_page activity id (run_id), used
+-- as the upsert conflict target so re-syncing is idempotent.
+--
+-- Unlike faith_activities, this is public-read: running data is already
+-- published with no auth on this web dashboard, so gating it behind
+-- sign-in here would be a step backward, not a privacy improvement. Only
+-- the service_role key (held exclusively by the GitHub Actions sync job,
+-- never shipped in either app) can write, since service_role bypasses RLS
+-- entirely — anon/authenticated get read-only access via the policy below.
+create table if not exists activities (
+  id bigint primary key,
+  type text not null,
+  name text not null,
+  distance double precision not null,
+  moving_time integer not null,
+  start_date_local timestamp not null,
+  elevation_gain double precision,
+  average_heartrate double precision,
+  updated_at timestamptz not null default now()
+);
+
+alter table activities enable row level security;
+
+create policy "Anyone can read activities"
+  on activities
+  for select
+  using (true);
+
+create index if not exists activities_start_date_local_idx
+  on activities (start_date_local desc);
