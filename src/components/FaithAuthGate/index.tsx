@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 interface FaithAuthGateProps {
   children: ReactNode;
@@ -20,6 +20,8 @@ const FaithAuthGate = ({ children }: FaithAuthGateProps) => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
 
     const { data: subscription } = supabase.auth.onAuthStateChange(
@@ -41,6 +43,30 @@ const FaithAuthGate = ({ children }: FaithAuthGateProps) => {
     setSubmitting(false);
     if (authError) setError(authError.message);
   };
+
+  if (!isSupabaseConfigured) {
+    return (
+      <div
+        className="mx-auto w-full max-w-sm rounded-2xl p-6"
+        style={{
+          backgroundColor: 'var(--color-card)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+        <h2
+          className="mb-1 text-base font-bold"
+          style={{ color: 'var(--color-text)' }}
+        >
+          Faith sync isn&apos;t set up yet
+        </h2>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          This deployment is missing the VITE_SUPABASE_URL /
+          VITE_SUPABASE_ANON_KEY environment variables. See README &quot;Faith
+          Tab: Supabase Setup&quot; to enable this tab.
+        </p>
+      </div>
+    );
+  }
 
   if (session === undefined) {
     return (
