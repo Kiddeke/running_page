@@ -272,6 +272,15 @@ jobs:
           pip install duckdb==1.1.0
           python run_page/save_to_parqent.py
 
+      - name: Sync activities to Supabase
+        # Powers running-faith-mobile's live running data. No-op until
+        # SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY secrets are set - see
+        # README "Live Strava sync" for setup. The service_role key must
+        # only ever be used here, never in either app's client code.
+        if: env.RUN_TYPE != 'pass' && secrets.SUPABASE_URL != ''
+        run: |
+          python run_page/sync_activities_to_supabase.py "${{ secrets.SUPABASE_URL }}" "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+
       - name: Disconnect Cloudflare WARP
         if: env.USE_CLOUDFLARE_WARP == 'true'
         run: |

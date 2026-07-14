@@ -1,11 +1,4 @@
-import {
-  useState,
-  useMemo,
-  useCallback,
-  useEffect,
-  useRef,
-  type ChangeEvent,
-} from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AreaChart,
@@ -18,32 +11,17 @@ import {
   Dot,
 } from 'recharts';
 import MassCalendar from '@/components/MassCalendar';
+import FaithAuthGate from '@/components/FaithAuthGate';
+import { useFaithActivities } from '@/hooks/useFaithActivities';
+import {
+  FAITH_TYPES,
+  type FaithActivity,
+  type FaithType,
+} from '@/models/faithActivity';
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-export type FaithType =
-  | 'mass'
-  | 'confession'
-  | 'prayer'
-  | 'almsgiving'
-  | 'fasting';
-
-export interface FaithActivity {
-  id: string;
-  type: FaithType;
-  date: string; // YYYY-MM-DD
-  notes?: string;
-}
+export type { FaithActivity, FaithType };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const FAITH_TYPES: { key: FaithType; label: string; emoji: string }[] = [
-  { key: 'mass', label: 'Mass', emoji: '✝️' },
-  { key: 'confession', label: 'Confession', emoji: '🙏' },
-  { key: 'prayer', label: 'Prayer', emoji: '📿' },
-  { key: 'almsgiving', label: 'Almsgiving', emoji: '🤲' },
-  { key: 'fasting', label: 'Fasting', emoji: '🌿' },
-];
 
 const TYPE_COLORS: Record<FaithType, string> = {
   mass: '#f5a623',
@@ -51,55 +29,6 @@ const TYPE_COLORS: Record<FaithType, string> = {
   prayer: '#00d4ff',
   almsgiving: '#00c853',
   fasting: '#ff6b6b',
-};
-
-const STORAGE_KEY = 'faith_activities_v1';
-
-// ── Storage helpers ───────────────────────────────────────────────────────────
-
-const loadActivities = (): FaithActivity[] => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
-  } catch {
-    return [];
-  }
-};
-
-const saveActivities = (acts: FaithActivity[]) =>
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(acts));
-
-// ── Export / import ───────────────────────────────────────────────────────────
-// Activities only live in this browser's localStorage, so logging on one
-// device won't show up on another. Export/import lets you move a backup
-// between them by hand until there's a synced backend.
-
-const isFaithActivity = (v: any): v is FaithActivity =>
-  !!v &&
-  typeof v.id === 'string' &&
-  typeof v.date === 'string' &&
-  FAITH_TYPES.some((t) => t.key === v.type);
-
-const mergeActivities = (
-  existing: FaithActivity[],
-  incoming: unknown[]
-): FaithActivity[] => {
-  const byId = new Map(existing.map((a) => [a.id, a]));
-  incoming.forEach((a) => {
-    if (isFaithActivity(a)) byId.set(a.id, a);
-  });
-  return Array.from(byId.values()).sort((a, b) => b.date.localeCompare(a.date));
-};
-
-const exportActivities = (activities: FaithActivity[]) => {
-  const blob = new Blob([JSON.stringify(activities, null, 2)], {
-    type: 'application/json',
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `faith-log-${todayStr()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
 };
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -375,55 +304,13 @@ const ChartTooltip = ({ active, payload, label }: any) => {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-const FaithTab = () => {
+const FaithTabContent = () => {
   const navigate = useNavigate();
-  const [activities, setActivities] = useState<FaithActivity[]>(loadActivities);
+  const { activities, loading, addActivity, removeActivity } =
+    useFaithActivities();
   const [filter, setFilter] = useState<FaithType | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
-
-  useEffect(() => {
-    saveActivities(activities);
-  }, [activities]);
-
-  const addActivity = useCallback((act: Omit<FaithActivity, 'id'>) => {
-    const newAct: FaithActivity = {
-      ...act,
-      id: `${Date.now()}-${Math.random()}`,
-    };
-    setActivities((prev) =>
-      [newAct, ...prev].sort((a, b) => b.date.localeCompare(a.date))
-    );
-  }, []);
-
-  const deleteActivity = useCallback((id: string) => {
-    setActivities((prev) => prev.filter((a) => a.id !== id));
-  }, []);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importError, setImportError] = useState<string | null>(null);
-
-  const handleImportClick = () => fileInputRef.current?.click();
-
-  const handleImportFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    setImportError(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(String(reader.result));
-        if (!Array.isArray(parsed)) throw new Error('not an array');
-        setActivities((prev) => mergeActivities(prev, parsed));
-      } catch {
-        setImportError(
-          "Couldn't read that file — expected a faith log JSON export."
-        );
-      }
-    };
-    reader.readAsText(file);
-  };
 
   // Build 12-week chart data
   const chartData = useMemo(() => {
@@ -513,36 +400,7 @@ const FaithTab = () => {
               ? `Week of ${formatWeekLabel(selectedWeek)}`
               : 'All Time'}
           </p>
-          <div className="flex shrink-0 items-center gap-3">
-            <button
-              onClick={() => exportActivities(activities)}
-              disabled={activities.length === 0}
-              className="text-xs font-semibold disabled:opacity-40"
-              style={{ color: 'var(--color-brand)' }}
-            >
-              Export
-            </button>
-            <button
-              onClick={handleImportClick}
-              className="text-xs font-semibold"
-              style={{ color: 'var(--color-brand)' }}
-            >
-              Import
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/json"
-              onChange={handleImportFile}
-              className="hidden"
-            />
-          </div>
         </div>
-        {importError && (
-          <p className="mb-3 text-xs" style={{ color: TYPE_COLORS.fasting }}>
-            {importError}
-          </p>
-        )}
         <div className="flex flex-wrap gap-3">
           {FAITH_TYPES.map(({ key, label, emoji }) => (
             <div key={key} className="flex items-center gap-1.5">
@@ -709,24 +567,27 @@ const FaithTab = () => {
 
       {/* Activity list */}
       <div className="space-y-2">
-        {filteredActivities.length === 0 ? (
-          <div className="py-10 text-center">
-            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-              No activities logged yet.
-            </p>
-            <button
-              onClick={() => setShowModal(true)}
-              className="mt-3 text-sm font-semibold"
-              style={{ color: 'var(--color-brand)' }}
-            >
-              Log your first one →
-            </button>
-          </div>
-        ) : (
-          filteredActivities.map((a) => (
-            <FaithCard key={a.id} act={a} onDelete={deleteActivity} />
-          ))
-        )}
+        {filteredActivities.length === 0
+          ? !loading && (
+              <div className="py-10 text-center">
+                <p
+                  className="text-sm"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  No activities logged yet.
+                </p>
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="mt-3 text-sm font-semibold"
+                  style={{ color: 'var(--color-brand)' }}
+                >
+                  Log your first one →
+                </button>
+              </div>
+            )
+          : filteredActivities.map((a) => (
+              <FaithCard key={a.id} act={a} onDelete={removeActivity} />
+            ))}
       </div>
 
       {showModal && (
@@ -735,5 +596,11 @@ const FaithTab = () => {
     </div>
   );
 };
+
+const FaithTab = () => (
+  <FaithAuthGate>
+    <FaithTabContent />
+  </FaithAuthGate>
+);
 
 export default FaithTab;
