@@ -35,6 +35,10 @@ def to_supabase_row(activity: dict) -> dict:
         "start_date_local": activity["start_date_local"].replace(" ", "T"),
         "elevation_gain": activity.get("elevation_gain"),
         "average_heartrate": activity.get("average_heartrate"),
+        # Encoded route (Google polyline format) — the mobile app's run-detail
+        # map. Always present (null when the activity has no GPS track) so
+        # bulk rows keep identical key sets.
+        "summary_polyline": activity.get("summary_polyline") or None,
     }
 
 
