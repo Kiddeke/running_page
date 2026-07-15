@@ -21,7 +21,10 @@ def parse_moving_time(value: str) -> int:
 
 
 def to_supabase_row(activity: dict) -> dict:
-    row = {
+    # Every row must have the exact same set of keys: PostgREST rejects a bulk
+    # insert with heterogeneous rows (PGRST102, HTTP 400), so optional fields
+    # are always present and null rather than omitted.
+    return {
         "id": activity["run_id"],
         "type": TYPE_MAP.get(activity["type"], "run"),
         "name": activity["name"],
@@ -30,12 +33,9 @@ def to_supabase_row(activity: dict) -> dict:
         # running_page uses a space between date and time; Postgres accepts
         # either, but normalize to "T" to match what both apps expect.
         "start_date_local": activity["start_date_local"].replace(" ", "T"),
+        "elevation_gain": activity.get("elevation_gain"),
+        "average_heartrate": activity.get("average_heartrate"),
     }
-    if activity.get("elevation_gain") is not None:
-        row["elevation_gain"] = activity["elevation_gain"]
-    if activity.get("average_heartrate") is not None:
-        row["average_heartrate"] = activity["average_heartrate"]
-    return row
 
 
 def sync_activities_to_supabase(supabase_url: str, service_role_key: str) -> None:
@@ -59,6 +59,10 @@ def sync_activities_to_supabase(supabase_url: str, service_role_key: str) -> Non
         json=rows,
         timeout=30.0,
     )
+    if response.is_error:
+        # Surface PostgREST's error body in the Actions log — the status code
+        # alone (e.g. a bare 400) is undiagnosable.
+        print(f"Supabase rejected the sync ({response.status_code}): {response.text}")
     response.raise_for_status()
     print(f"Synced {len(rows)} activities to Supabase.")
 
