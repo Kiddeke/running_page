@@ -45,10 +45,6 @@ env:
   SAVE_TO_PARQENT: false # If you want to save the data to the repo, set it to `true`
   GENERATE_MONTH_OF_LIFE: true # If you want to generate the month of life, set it to `true`
   BIRTHDAY_MONTH: 1994-05 # If you want to generate the month of life, set it to your birthday month, format is YYYY-MM
-  # Hoisted so the Supabase step's `if:` can test it — the `secrets` context
-  # isn't allowed in step-level conditionals (using it there invalidates the
-  # whole workflow file: runs fail with zero jobs).
-  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
 
 jobs:
   sync:
@@ -276,14 +272,10 @@ jobs:
           pip install duckdb==1.1.0
           python run_page/save_to_parqent.py
 
-      - name: Sync activities to Supabase
-        # Powers running-faith-mobile's live running data. No-op until
-        # SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY secrets are set - see
-        # README "Live Strava sync" for setup. The service_role key must
-        # only ever be used here, never in either app's client code.
-        if: env.RUN_TYPE != 'pass' && env.SUPABASE_URL != ''
-        run: |
-          python run_page/sync_activities_to_supabase.py "${{ secrets.SUPABASE_URL }}" "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+      # The Supabase sync step that used to live here was removed: Palma now
+      # imports each user's Strava activities directly in the app (see
+      # Palma/src/services/stravaSync.ts), so this workflow only maintains
+      # the running_page site itself.
 
       - name: Disconnect Cloudflare WARP
         if: env.USE_CLOUDFLARE_WARP == 'true'
