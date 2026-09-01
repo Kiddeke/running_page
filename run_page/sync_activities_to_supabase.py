@@ -20,12 +20,16 @@ def parse_moving_time(value: str) -> int:
     return hours * 3600 + minutes * 60 + seconds
 
 
-def to_supabase_row(activity: dict) -> dict:
+def to_supabase_row(activity: dict, user_id: str | None, owner_name: str | None) -> dict:
     # Every row must have the exact same set of keys: PostgREST rejects a bulk
     # insert with heterogeneous rows (PGRST102, HTTP 400), so optional fields
     # are always present and null rather than omitted.
     return {
         "id": activity["run_id"],
+        # Ownership: Palma scopes feeds and RLS by user_id; a row without one
+        # is invisible in the app. owner_name is what the Circle feed prints.
+        "user_id": user_id,
+        "owner_name": owner_name,
         "type": TYPE_MAP.get(activity["type"], "run"),
         "name": activity["name"],
         "distance": activity["distance"],
@@ -42,11 +46,16 @@ def to_supabase_row(activity: dict) -> dict:
     }
 
 
-def sync_activities_to_supabase(supabase_url: str, service_role_key: str) -> None:
+def sync_activities_to_supabase(
+    supabase_url: str,
+    service_role_key: str,
+    user_id: str | None = None,
+    owner_name: str | None = None,
+) -> None:
     with open(JSON_FILE) as f:
         activities = json.load(f)
 
-    rows = [to_supabase_row(a) for a in activities]
+    rows = [to_supabase_row(a, user_id, owner_name) for a in activities]
 
     # Upsert on the id (Strava/running_page run_id) primary key, so re-runs
     # are idempotent. Only the service_role key can write here — see
@@ -75,5 +84,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("supabase_url", help="Supabase project URL")
     parser.add_argument("service_role_key", help="Supabase service_role key")
+    parser.add_argument("--user-id", help="Palma (Supabase Auth) user UUID to own the rows")
+    parser.add_argument("--owner-name", help="Display name shown on the rows in Palma")
     options = parser.parse_args()
-    sync_activities_to_supabase(options.supabase_url, options.service_role_key)
+    sync_activities_to_supabase(
+        options.supabase_url,
+        options.service_role_key,
+        options.user_id,
+        options.owner_name,
+    )

@@ -272,10 +272,24 @@ jobs:
           pip install duckdb==1.1.0
           python run_page/save_to_parqent.py
 
-      # The Supabase sync step that used to live here was removed: Palma now
-      # imports each user's Strava activities directly in the app (see
-      # Palma/src/services/stravaSync.ts), so this workflow only maintains
-      # the running_page site itself.
+      # Mirror the synced activities into Palma's Supabase so the app gets
+      # the GPS polylines Garmin never writes to Apple Health. Rows are
+      # attributed to the Palma account below; without user_id they would be
+      # invisible in the app. Skips quietly until the three secrets exist.
+      - name: Sync activities to Palma (Supabase)
+        if: env.RUN_TYPE == 'strava'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PALMA_USER_ID: ${{ secrets.PALMA_USER_ID }}
+          OWNER_NAME: 'Grant Deker'
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] || [ -z "$PALMA_USER_ID" ]; then
+            echo "Supabase secrets not configured; skipping Palma sync."
+            exit 0
+          fi
+          python run_page/sync_activities_to_supabase.py "$SUPABASE_URL" "$SUPABASE_SERVICE_ROLE_KEY" \
+            --user-id "$PALMA_USER_ID" --owner-name "$OWNER_NAME"
 
       - name: Disconnect Cloudflare WARP
         if: env.USE_CLOUDFLARE_WARP == 'true'
